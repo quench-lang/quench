@@ -13,4 +13,4 @@ jobs:
       - name: Build and install
         run: cargo install --path .
       - name: Run hello example
-        run: ./hello.qnh
+        run: ./hello.qn
