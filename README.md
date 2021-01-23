@@ -15,7 +15,7 @@ cargo install --path .
 Then run an example:
 
 ```
-./hello.qnh
+./hello.qn
 ```
 
 [rust]: https://www.rust-lang.org/tools/install
