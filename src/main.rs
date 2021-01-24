@@ -5,7 +5,6 @@ use structopt::StructOpt;
 #[structopt(about)]
 struct Opt {
     /// Source file to run as a script
-    #[structopt(parse(from_os_str))]
     file: Option<PathBuf>,
 
     /// Arguments to pass to the script
