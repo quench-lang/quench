@@ -1,0 +1,6 @@
+Opt {
+    file: Some(
+        "examples/hello.qn",
+    ),
+    arg: [],
+}

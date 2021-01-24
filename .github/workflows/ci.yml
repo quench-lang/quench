@@ -12,5 +12,5 @@ jobs:
           toolchain: stable
       - name: Build and install
         run: cargo install --path .
-      - name: Run hello example
-        run: ./hello.qn
+      - name: Check output of hello example
+        run: examples/hello.qn | git diff --no-index examples/hello.txt -
