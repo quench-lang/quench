@@ -10,7 +10,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - name: Build and install
+      - name: Run tests
+        run: cargo test
+      - name: Install
         run: cargo install --path .
       - name: Check output of hello example
         run: examples/hello.qn | git diff --no-index examples/hello.txt -

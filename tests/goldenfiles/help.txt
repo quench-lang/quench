@@ -1,0 +1,13 @@
+quench 0.1.0
+A programming language.
+
+USAGE:
+    quench [ARGS]
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+ARGS:
+    <file>      Source file to run as a script
+    <arg>...    Arguments to pass to the script
