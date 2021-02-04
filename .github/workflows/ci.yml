@@ -10,28 +10,16 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - name: Install Tree-sitter CLI
+        run: |
+          TS_GH=https://github.com/tree-sitter/tree-sitter.git
+          cargo install --rev 0.18.0 --git $TS_GH tree-sitter-cli
       - name: Run tests
         run: cargo test
       - name: Install
         run: cargo install --path .
       - name: Check output of hello example
         run: examples/hello.qn | git diff --no-index examples/hello.txt -
-  tree-sitter:
-    runs-on: ubuntu-18.04
-    defaults:
-      run:
-        working-directory: tree-sitter-quench
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install Node
-        uses: actions/setup-node@v2
-      - name: Install dependencies
-        run: npm install
-      - name: Generate Tree-sitter parser
-        run: npx tree-sitter generate
-      - name: Test parser
-        run: npx tree-sitter test
   vscode:
     runs-on: ubuntu-18.04
     defaults:

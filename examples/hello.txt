@@ -1,4 +1,1 @@
-(
-    "\n\nprint(\"Hello, world!\");\n",
-    "#!/usr/bin/env quench",
-)
+(source_file (comment) (call function: (identifier) arguments: (arguments (string))))

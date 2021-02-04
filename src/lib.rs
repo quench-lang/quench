@@ -1,8 +1,6 @@
 use anyhow::{anyhow, Result};
-use nom::{error::convert_error, Finish};
 use std::{fs::File, io::Read, path::PathBuf};
 use structopt::StructOpt;
-use thiserror::Error;
 
 mod parser;
 
@@ -16,13 +14,6 @@ struct Opt {
     args: Vec<String>,
 }
 
-// TODO: figure out a nicer way to deal with parser errors
-#[derive(Debug, Error)]
-#[error("{msg}")]
-struct ParseError {
-    msg: String,
-}
-
 pub fn main() -> Result<()> {
     let opt = Opt::from_args();
     let path = opt.file.ok_or(anyhow!(
@@ -31,11 +22,11 @@ pub fn main() -> Result<()> {
     let mut file = File::open(path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
-    let parsed = parser::program(&contents)
-        .finish()
-        .map_err(|e| ParseError {
-            msg: convert_error(contents.as_str(), e),
-        })?;
-    println!("{:#?}", parsed);
+
+    let mut parser = parser::parser();
+    // parser::parser guarantees we've set a language, and we haven't set timeout or cancellation
+    let tree = parser.parse(contents, None).unwrap();
+    println!("{}", tree.root_node().to_sexp());
+
     Ok(())
 }

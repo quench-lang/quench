@@ -1,13 +1,13 @@
-use nom::{
-    bytes::complete::is_not, character::complete::char as nom_char, combinator::recognize,
-    error::VerboseError, sequence::pair, IResult,
-};
+use tree_sitter::{Language, Parser};
 
-fn comment(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    recognize(pair(nom_char('#'), is_not("\r\n")))(i)
+extern "C" {
+    fn tree_sitter_quench() -> Language;
 }
 
-// TODO: use nom_locate to return a syntax tree with source locations
-pub fn program(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    comment(i)
+pub fn parser() -> Parser {
+    let language = unsafe { tree_sitter_quench() };
+    let mut parser = Parser::new();
+    // Err means we're using two incompatible versions of tree-sitter, meaning we built wrong
+    parser.set_language(language).unwrap();
+    parser
 }
