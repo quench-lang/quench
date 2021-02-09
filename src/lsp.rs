@@ -43,14 +43,22 @@ fn node_lsp_range(node: &Node) -> Range {
 
 // TODO: test this function
 fn diagnostics(node: &Node) -> Vec<Diagnostic> {
-    if node.is_error() {
+    if let Some(message) = {
+        if node.is_error() {
+            Some("error")
+        } else if node.is_missing() {
+            Some("missing")
+        } else {
+            None
+        }
+    } {
         vec![Diagnostic {
             range: node_lsp_range(node),
             severity: Some(DiagnosticSeverity::Error),
             code: None,
             code_description: None,
             source: None,
-            message: "syntax error".to_string(),
+            message: format!("syntax {}", message),
             related_information: None,
             tags: None,
             data: None,
