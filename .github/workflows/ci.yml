@@ -20,12 +20,29 @@ jobs:
         run: cargo install --path .
       - name: Check output of hello example
         run: examples/hello.qn | git diff --no-index examples/hello.txt -
+      - uses: actions/upload-artifact@v2
+        with:
+          name: quench-lsp
+          path: '~/.cargo/bin/quench-lsp'
   vscode:
+    needs: rust
     runs-on: ubuntu-18.04
     defaults:
       run:
         working-directory: editors/code
     steps:
+      - name: Download quench-lsp from previous job
+        uses: actions/download-artifact@v2
+        with:
+          name: quench-lsp
+      - name: Make quench-lsp executable
+        run: |
+          chmod +x ~/.cargo/bin/quench-lsp
+          echo ~/.cargo/bin >> $GITHUB_PATH
+      - name: Smoketest quench-lsp
+        run: |
+          timeout 1s quench-lsp || code=$?
+          [ $code -eq 124 ]
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Node
