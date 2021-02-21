@@ -33,16 +33,17 @@ function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
 }
 
 suite('Quench', function () {
-  test('correctly reports syntax error(s) for "Hello, world!"', async () => {
+  test('correctly reports syntax error(s) for "Hello, world!"', async function () {
+    this.timeout(10000); // longboi
     const docUri = getExampleUri('hello.qn');
     const editor = (await activate(docUri))!;
-    await sleep(500); // wait half a sec for the lang server to start
+    await sleep(1000); // wait half a sec for the lang server to start
     assert.deepStrictEqual(vscode.languages.getDiagnostics(docUri), []);
     await editor.edit(editBuilder => {
       // mangle
       editBuilder.replace(toRange(2, 0, 3, 0), 'print("Hello,"" world!")');
     });
-    await sleep(500); // wait half a sec for the lang server to re-parse
+    await sleep(1000); // wait half a sec for the lang server to re-parse
     {
       const diagnostics = vscode.languages.getDiagnostics(docUri);
       assert.strictEqual(diagnostics.length, 2);
@@ -61,7 +62,7 @@ suite('Quench', function () {
       // unmangle
       editBuilder.replace(toRange(2, 0, 3, 0), 'print("Hello, world!");');
     });
-    await sleep(500); // wait half a sec for the lang server re-parse again
+    await sleep(1000); // wait half a sec for the lang server re-parse again
     assert.deepStrictEqual(vscode.languages.getDiagnostics(docUri), []);
   });
 });
