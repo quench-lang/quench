@@ -252,7 +252,8 @@ impl State {
                         let _ = tx.send(());
                     }
                     Request::Close { params: _, tx } => {
-                        // TODO: figure out how to remove Salsa inputs
+                        // Salsa doesn't seem to support removing inputs:
+                        // https://github.com/salsa-rs/salsa/issues/37
                         let _ = tx.send(());
                     }
                     Request::Tokens { uri, tx } => {
