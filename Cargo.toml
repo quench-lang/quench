@@ -10,12 +10,15 @@ path = "src/lsp.rs"
 
 [dependencies]
 anyhow = "1"
+futures = "0.3"
 lspower = "0.6"
+salsa = "0.16"
 structopt = "0.3"
 strum = "0.20"
 strum_macros = "0.20"
 tokio = { version = "1", features = ["full"] }
 tree-sitter = "0.17"
+url = "2"
 
 [build-dependencies]
 cc = "1"

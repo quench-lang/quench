@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use std::{fs::File, io::Read, path::PathBuf};
 use structopt::StructOpt;
 
+pub mod db;
 pub mod parser;
 
 #[derive(Debug, StructOpt)]
