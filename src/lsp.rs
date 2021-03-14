@@ -68,7 +68,7 @@ impl LanguageServer for Backend {
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let uri = params.text_document.uri.clone();
         if let Err(error) = self.state.open_document(params).await {
-            // TODO: join this with following await
+            // could join this with following await
             self.client.show_message(MessageType::Error, error).await;
         }
         self.push_diagnostics(uri).await;
@@ -77,7 +77,7 @@ impl LanguageServer for Backend {
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let uri = params.text_document.uri.clone();
         if let Err(error) = self.state.edit_document(params).await {
-            // TODO: join this with following await
+            // could join this with following await
             self.client.show_message(MessageType::Error, error).await;
         }
         self.push_diagnostics(uri).await;
