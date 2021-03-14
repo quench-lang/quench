@@ -17,8 +17,6 @@ struct Backend {
     state: Arc<db::State>,
 }
 
-// TODO: improve the error messages shown to the user
-
 impl Backend {
     async fn push_diagnostics(&self, uri: Url) {
         match self.state.get_diagnostics(uri.clone()).await {
