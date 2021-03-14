@@ -353,7 +353,6 @@ struct DiagnosticsRequest(Url);
 impl Processable<im::Vector<Diagnostic>> for DiagnosticsRequest {
     fn process(self, db: &mut Database) -> im::Vector<Diagnostic> {
         let DiagnosticsRequest(uri) = self;
-        // TODO: warn if the document wasn't already opened
         db.diagnostics(uri)
     }
 }
@@ -450,7 +449,6 @@ struct TokensRequest(Url);
 impl Processable<im::Vector<SemanticToken>> for TokensRequest {
     fn process(self, db: &mut Database) -> im::Vector<SemanticToken> {
         let TokensRequest(uri) = self;
-        // TODO: warn if the document wasn't already opened
         db.semantic_tokens(uri)
     }
 }
