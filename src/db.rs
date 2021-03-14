@@ -7,7 +7,7 @@ use std::{convert::TryFrom, fmt::Debug, ptr, rc::Rc, thread};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use tokio::sync::{mpsc, oneshot};
-use tree_sitter::{Node, Tree};
+use tree_sitter::{Node, Point, Tree};
 use url::Url;
 
 #[derive(Debug)]
@@ -69,21 +69,26 @@ fn ast(db: &dyn QueryGroup, key: Url) -> Option<Rc<Ast>> {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+enum FileSizeError {
+    #[error("file has too many lines to fit in 32-bit unsigned int")]
+    TooManyLines,
+    #[error("line {line} has too many characters to fit in 32-bit unsigned int")]
+    LineTooLong { line: u32 },
+}
+
 // TODO: account for UTF-8 vs UTF-16
-fn node_lsp_range(node: &Node) -> Range {
-    let start = node.start_position();
-    let end = node.end_position();
-    Range {
-        // TODO: figure out an alternative to unwrap here
-        start: Position {
-            line: u32::try_from(start.row).unwrap(),
-            character: u32::try_from(start.column).unwrap(),
-        },
-        end: Position {
-            line: u32::try_from(end.row).unwrap(),
-            character: u32::try_from(end.column).unwrap(),
-        },
-    }
+fn point_to_position(point: Point) -> Result<Position, FileSizeError> {
+    // I'm unsure whether it's possible for these errors to occur in practice
+    let line = u32::try_from(point.row).map_err(|_| FileSizeError::TooManyLines)?;
+    let character = u32::try_from(point.column).map_err(|_| FileSizeError::LineTooLong { line })?;
+    Ok(Position { line, character })
+}
+
+fn node_lsp_range(node: &Node) -> Result<Range, FileSizeError> {
+    let start = point_to_position(node.start_position())?;
+    let end = point_to_position(node.end_position())?;
+    Ok(Range { start, end })
 }
 
 #[salsa::database(Storage)]
@@ -317,11 +322,16 @@ fn diagnostics_helper(node: &Node) -> im::Vector<Diagnostic> {
             None
         }
     } {
-        im::vector![make_diagnostic(
-            node_lsp_range(node),
-            format!("syntax {}", message),
-            DiagnosticSeverity::Error,
-        )]
+        match node_lsp_range(node) {
+            Ok(range) => im::vector![make_diagnostic(
+                range,
+                format!("syntax {}", message),
+                DiagnosticSeverity::Error,
+            )],
+            // if the file is too big, we just drop diagnostics (as opposed to, e.g., reporting
+            // extra diagnostics for long files/lines)
+            Err(_) => im::vector![],
+        }
     } else {
         let mut diagnostics = im::vector![];
         let mut cursor = node.walk();
@@ -371,15 +381,20 @@ fn absolute_tokens(node: &Node) -> im::Vector<AbsoluteToken> {
         "identifier" => Some(TokenType::Variable),
         _ => None,
     } {
-        let range = node_lsp_range(node);
-        if range.start.line == range.end.line {
-            return im::vector![AbsoluteToken {
-                line: range.start.line,
-                start: range.start.character,
-                length: range.end.character - range.start.character,
-                token_type,
-            }];
+        // if the file is too big to tokenize, we just drop tokens (as opposed to, e.g., truncating
+        // them)
+        if let Ok(range) = node_lsp_range(node) {
+            // TODO: split multiline tokens
+            if range.start.line == range.end.line {
+                return im::vector![AbsoluteToken {
+                    line: range.start.line,
+                    start: range.start.character,
+                    length: range.end.character - range.start.character,
+                    token_type,
+                }];
+            }
         }
+        return im::vector![];
     }
     let mut tokens = im::vector![];
     let mut cursor = node.walk();
