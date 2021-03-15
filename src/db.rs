@@ -1,7 +1,7 @@
 use crate::parser;
 use lspower::lsp::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, Position, Range, SemanticToken, SemanticTokenType,
+    DidOpenTextDocumentParams, MessageType, Position, Range, SemanticToken, SemanticTokenType,
     TextDocumentContentChangeEvent,
 };
 use std::{convert::TryFrom, fmt::Debug, ptr, rc::Rc, thread};
@@ -157,6 +157,16 @@ impl From<oneshot::error::RecvError> for AsyncError {
     }
 }
 
+pub trait LspMessage {
+    fn message_type(&self) -> MessageType;
+}
+
+impl LspMessage for AsyncError {
+    fn message_type(&self) -> MessageType {
+        MessageType::Error
+    }
+}
+
 impl State {
     pub fn new() -> Self {
         let (tx, mut rx) = mpsc::channel::<BoxedRequest>(1);
@@ -192,16 +202,37 @@ pub enum OpError<T: 'static + Debug + std::error::Error> {
     Op(#[source] T),
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("document was already opened")]
-pub struct AlreadyOpenError {
-    files: im::HashSet<Url>,
+impl<T: 'static + Debug + std::error::Error + LspMessage> LspMessage for OpError<T> {
+    fn message_type(&self) -> MessageType {
+        match self {
+            OpError::Async(error) => error.message_type(),
+            OpError::Op(error) => error.message_type(),
+        }
+    }
 }
 
 #[derive(Debug, Eq, thiserror::Error, PartialEq)]
-#[error("document not yet opened")]
+#[error("{uri} was already opened")]
+pub struct AlreadyOpenError {
+    uri: Url,
+}
+
+impl LspMessage for AlreadyOpenError {
+    fn message_type(&self) -> MessageType {
+        MessageType::Warning
+    }
+}
+
+#[derive(Debug, Eq, thiserror::Error, PartialEq)]
+#[error("{uri} not yet opened")]
 pub struct NotYetOpenedError {
-    files: im::HashSet<Url>,
+    uri: Url,
+}
+
+impl LspMessage for NotYetOpenedError {
+    fn message_type(&self) -> MessageType {
+        MessageType::Warning
+    }
 }
 
 impl Database {
@@ -211,8 +242,8 @@ impl Database {
         // mistake, rather than risk possibly dropping data
         self.set_source_text(uri.clone(), Rc::new(text));
         let mut files = self.opened_files();
-        if let Some(_) = files.insert(uri) {
-            Err(AlreadyOpenError { files })
+        if let Some(_) = files.insert(uri.clone()) {
+            Err(AlreadyOpenError { uri })
         } else {
             self.set_opened_files(files);
             Ok(())
@@ -242,9 +273,11 @@ impl Database {
         // to give the client the benefit of the doubt and assume that we've made a bookkeeping
         // mistake, rather than risk possibly dropping data
         self.set_source_text(uri.clone(), Rc::new(text));
-        let files = self.opened_files();
+        let mut files = self.opened_files();
         if !files.contains(&uri) {
-            Err(NotYetOpenedError { files })
+            files.insert(uri.clone());
+            self.set_opened_files(files);
+            Err(NotYetOpenedError { uri })
         } else {
             Ok(())
         }
@@ -261,6 +294,15 @@ pub enum EditError {
         uri: Url,
         version: i32,
     },
+}
+
+impl LspMessage for EditError {
+    fn message_type(&self) -> MessageType {
+        match self {
+            EditError::NotYetOpened(error) => error.message_type(),
+            EditError::IncrementalSync { .. } => MessageType::Error,
+        }
+    }
 }
 
 impl Processable<Result<(), EditError>> for DidChangeTextDocumentParams {
@@ -303,7 +345,7 @@ impl Database {
         self.set_source_text(uri.clone(), Rc::new(String::from("")));
         let mut files = self.opened_files();
         if let None = files.remove(&uri) {
-            Err(NotYetOpenedError { files })
+            Err(NotYetOpenedError { uri })
         } else {
             self.set_opened_files(files);
             Ok(())
@@ -494,6 +536,42 @@ mod tests {
         let uri = Url::parse("file:///tmp/foo.qn").unwrap();
         db.open_document(uri.clone(), String::from(text)).unwrap();
         (db, uri)
+    }
+
+    #[test]
+    fn test_already_open_error() {
+        let (mut db, uri) = foo_db(String::from("foo"));
+        assert_eq!(
+            db.open_document(uri.clone(), String::from("bar")),
+            Err(AlreadyOpenError { uri: uri.clone() }),
+        );
+        assert_eq!(db.opened_files(), im::hashset![uri.clone()]);
+        let new_contents: &str = &db.source_text(uri);
+        assert_eq!(new_contents, "bar");
+    }
+
+    #[test]
+    fn test_edit_not_yet_opened_error() {
+        let mut db = Database::default();
+        let uri = Url::parse("file:///tmp/foo.qn").unwrap();
+        assert_eq!(
+            db.edit_document(uri.clone(), String::from("bar")),
+            Err(NotYetOpenedError { uri: uri.clone() }),
+        );
+        assert_eq!(db.opened_files(), im::hashset![uri.clone()]);
+        let new_contents: &str = &db.source_text(uri);
+        assert_eq!(new_contents, "bar");
+    }
+
+    #[test]
+    fn test_close_not_yet_opened_error() {
+        let mut db = Database::default();
+        let uri = Url::parse("file:///tmp/foo.qn").unwrap();
+        assert_eq!(
+            db.close_document(uri.clone()),
+            Err(NotYetOpenedError { uri: uri.clone() }),
+        );
+        assert_eq!(db.opened_files(), im::hashset![]);
     }
 
     fn make_range(

@@ -3,7 +3,7 @@ use lspower::{
     lsp::*,
     Client, LanguageServer, LspService, Server,
 };
-use quench::db;
+use quench::db::{self, LspMessage};
 use std::sync::Arc;
 
 enum ServerErrorCode {
@@ -21,7 +21,7 @@ impl Backend {
     async fn push_diagnostics(&self, uri: Url) {
         match self.state.get_diagnostics(uri.clone()).await {
             Err(error) => {
-                self.client.show_message(MessageType::Error, error).await;
+                self.client.show_message(error.message_type(), error).await;
             }
             Ok(diagnostics) => {
                 self.client
@@ -69,7 +69,7 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.clone();
         if let Err(error) = self.state.open_document(params).await {
             // could join this with following await
-            self.client.show_message(MessageType::Error, error).await;
+            self.client.show_message(error.message_type(), error).await;
         }
         self.push_diagnostics(uri).await;
     }
@@ -78,14 +78,14 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri.clone();
         if let Err(error) = self.state.edit_document(params).await {
             // could join this with following await
-            self.client.show_message(MessageType::Error, error).await;
+            self.client.show_message(error.message_type(), error).await;
         }
         self.push_diagnostics(uri).await;
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         if let Err(error) = self.state.close_document(params).await {
-            self.client.show_message(MessageType::Error, error).await;
+            self.client.show_message(error.message_type(), error).await;
         }
     }
 
