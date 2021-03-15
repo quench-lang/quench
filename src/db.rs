@@ -53,11 +53,25 @@ trait QueryGroup: salsa::Database {
     #[salsa::input]
     fn source_text(&self, key: Url) -> Rc<String>;
 
+    fn source_line_lengths(&self, key: Url) -> im::Vector<usize>;
+
+    fn size_diagnostics(&self, key: Url) -> im::Vector<Diagnostic>;
+
     fn ast(&self, key: Url) -> Option<Rc<Ast>>;
+
+    fn syntax_diagnostics(&self, key: Url) -> im::Vector<Diagnostic>;
 
     fn diagnostics(&self, key: Url) -> im::Vector<Diagnostic>;
 
     fn semantic_tokens(&self, key: Url) -> im::Vector<SemanticToken>;
+}
+
+fn source_line_lengths(db: &dyn QueryGroup, key: Url) -> im::Vector<usize> {
+    if db.opened_files().contains(&key) {
+        db.source_text(key).lines().map(|line| line.len()).collect()
+    } else {
+        im::vector![]
+    }
 }
 
 fn ast(db: &dyn QueryGroup, key: Url) -> Option<Rc<Ast>> {
@@ -374,7 +388,36 @@ fn make_diagnostic(range: Range, message: String, severity: DiagnosticSeverity) 
     diag
 }
 
-fn diagnostics_helper(node: &Node) -> im::Vector<Diagnostic> {
+fn size_diagnostics(db: &dyn QueryGroup, key: Url) -> im::Vector<Diagnostic> {
+    let line_lengths = db.source_line_lengths(key);
+    let mut diagnostics = im::vector![];
+    for (index, line_length) in line_lengths.iter().enumerate() {
+        match u32::try_from(index) {
+            Ok(line) => {
+                if let Err(_) = u32::try_from(line_length.clone()) {
+                    let pos = Position::new(line, u32::MAX);
+                    diagnostics.push_back(make_diagnostic(
+                        Range::new(pos, pos),
+                        format!("{}", FileSizeError::LineTooLong { line }),
+                        DiagnosticSeverity::Warning,
+                    ));
+                }
+            }
+            Err(_) => {
+                let pos = Position::new(u32::MAX, 0);
+                diagnostics.push_back(make_diagnostic(
+                    Range::new(pos, pos),
+                    format!("{}", FileSizeError::TooManyLines),
+                    DiagnosticSeverity::Warning,
+                ));
+                break;
+            }
+        }
+    }
+    diagnostics
+}
+
+fn syntax_diagnostics_helper(node: &Node) -> im::Vector<Diagnostic> {
     if let Some(message) = {
         if node.is_error() {
             Some("error")
@@ -390,25 +433,30 @@ fn diagnostics_helper(node: &Node) -> im::Vector<Diagnostic> {
                 format!("syntax {}", message),
                 DiagnosticSeverity::Error,
             )],
-            // if the file is too big, we just drop diagnostics (as opposed to, e.g., reporting
-            // extra diagnostics for long files/lines)
+            // we already report via size_diagnostics when files or lines are too big
             Err(_) => im::vector![],
         }
     } else {
         let mut diagnostics = im::vector![];
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            diagnostics.append(diagnostics_helper(&child));
+            diagnostics.append(syntax_diagnostics_helper(&child));
         }
         diagnostics
     }
 }
 
-fn diagnostics(db: &dyn QueryGroup, key: Url) -> im::Vector<Diagnostic> {
+fn syntax_diagnostics(db: &dyn QueryGroup, key: Url) -> im::Vector<Diagnostic> {
     match db.ast(key) {
         None => im::vector![],
-        Some(tree) => diagnostics_helper(&tree.0.root_node()),
+        Some(tree) => syntax_diagnostics_helper(&tree.0.root_node()),
     }
+}
+
+fn diagnostics(db: &dyn QueryGroup, key: Url) -> im::Vector<Diagnostic> {
+    let mut diags = db.size_diagnostics(key.clone());
+    diags.append(db.syntax_diagnostics(key));
+    diags
 }
 
 struct DiagnosticsRequest(Url);
@@ -434,34 +482,64 @@ struct AbsoluteToken {
     token_type: TokenType,
 }
 
-fn absolute_tokens(node: &Node) -> im::Vector<AbsoluteToken> {
+impl AbsoluteToken {
+    fn from_usizes(
+        row: usize,
+        column: usize,
+        len: usize,
+        token_type: TokenType,
+    ) -> Result<AbsoluteToken, FileSizeError> {
+        let line = u32::try_from(row).map_err(|_| FileSizeError::TooManyLines)?;
+        let start = u32::try_from(column).map_err(|_| FileSizeError::LineTooLong { line })?;
+        let length = u32::try_from(len).unwrap_or(u32::MAX); // give as much of the token as we can
+        Ok(AbsoluteToken {
+            line,
+            start,
+            length,
+            token_type,
+        })
+    }
+}
+
+fn absolute_tokens(node: &Node, line_lengths: im::Vector<usize>) -> im::Vector<AbsoluteToken> {
     if let Some(token_type) = match node.kind() {
         "comment" => Some(TokenType::Comment),
         "string" => Some(TokenType::String),
         "identifier" => Some(TokenType::Variable),
         _ => None,
     } {
-        // if the file is too big to tokenize, we just drop tokens (as opposed to, e.g., truncating
-        // them)
-        if let Ok(range) = node_lsp_range(node) {
-            // TODO: split multiline tokens
-            if range.start.line == range.end.line {
-                return im::vector![AbsoluteToken {
-                    line: range.start.line,
-                    start: range.start.character,
-                    length: range.end.character - range.start.character,
-                    token_type,
-                }];
+        let start = node.start_position();
+        let end = node.end_position();
+        let mut tokens = im::Vector::new();
+        let mut column = start.column;
+        for row in start.row..end.row {
+            // in theory this could fail if this function somehow gets called on a file that's not
+            // opened; should never happen, but in that case we break just to be safe
+            if let Some(line_length) = line_lengths.get(row) {
+                if let Ok(token) =
+                    AbsoluteToken::from_usizes(row, column, line_length - column, token_type)
+                {
+                    tokens.push_back(token);
+                    column = 0;
+                    continue;
+                }
             }
+            break;
         }
-        return im::vector![];
+        if let Ok(token) =
+            AbsoluteToken::from_usizes(end.row, column, end.column - column, token_type)
+        {
+            tokens.push_back(token);
+        }
+        tokens
+    } else {
+        let mut tokens = im::vector![];
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            tokens.append(absolute_tokens(&child, line_lengths.clone()));
+        }
+        tokens
     }
-    let mut tokens = im::vector![];
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        tokens.append(absolute_tokens(&child));
-    }
-    tokens
 }
 
 fn make_relative(tokens: im::Vector<AbsoluteToken>) -> im::Vector<SemanticToken> {
@@ -500,9 +578,12 @@ fn make_relative(tokens: im::Vector<AbsoluteToken>) -> im::Vector<SemanticToken>
 }
 
 fn semantic_tokens(db: &dyn QueryGroup, key: Url) -> im::Vector<SemanticToken> {
-    match db.ast(key) {
+    match db.ast(key.clone()) {
+        Some(tree) => make_relative(absolute_tokens(
+            &tree.0.root_node(),
+            db.source_line_lengths(key),
+        )),
         None => im::vector![],
-        Some(tree) => make_relative(absolute_tokens(&tree.0.root_node())),
     }
 }
 
@@ -682,6 +763,23 @@ mod tests {
                 make_token(2, 0, 5, TokenType::Variable),
                 make_token(0, 6, 15, TokenType::String),
             ],
+        );
+    }
+
+    #[test]
+    fn test_tokens_multiline() {
+        let (db, uri) = foo_db(String::from(
+            "print(\"long line\nvery long middle line\nshort\");",
+        ));
+        let tokens = db.semantic_tokens(uri);
+        assert_eq!(
+            tokens,
+            im::vector![
+                make_token(0, 0, 5, TokenType::Variable),
+                make_token(0, 6, 10, TokenType::String),
+                make_token(1, 0, 21, TokenType::String),
+                make_token(1, 0, 6, TokenType::String),
+            ]
         );
     }
 }
