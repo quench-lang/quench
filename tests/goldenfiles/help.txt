@@ -2,7 +2,7 @@ quench 0.1.0
 A programming language.
 
 USAGE:
-    quench [ARGS]
+    quench <file> [args]...
 
 FLAGS:
     -h, --help       Prints help information

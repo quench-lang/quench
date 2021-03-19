@@ -1,18 +1,17 @@
 use crate::{parser, text};
 use lspower::lsp::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, MessageType, Position, Range, SemanticToken, SemanticTokenType,
+    DidOpenTextDocumentParams, Position, Range, SemanticToken, SemanticTokenType,
     TextDocumentContentChangeEvent,
 };
-use std::{fmt::Debug, ptr, rc::Rc, thread};
+use std::{fmt::Debug, ptr, rc::Rc};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use tokio::sync::{mpsc, oneshot};
 use tree_sitter::{Node, Point, Tree};
 use url::Url;
 
 #[derive(Debug)]
-struct Ast(Tree);
+pub struct Ast(pub Tree);
 
 impl PartialEq for Ast {
     fn eq(&self, other: &Self) -> bool {
@@ -45,7 +44,7 @@ pub fn token_types() -> Vec<SemanticTokenType> {
 }
 
 #[salsa::query_group(Storage)]
-trait QueryGroup: salsa::Database {
+pub trait QueryGroup: salsa::Database {
     // we don't track versions because we only allow full text sync
     #[salsa::input]
     fn opened_files(&self) -> im::HashSet<Url>;
@@ -74,6 +73,7 @@ fn ast(db: &dyn QueryGroup, key: Url) -> Option<Rc<Ast>> {
     if db.opened_files().contains(&key) {
         let mut parser = parser::parser();
         let text: &str = &db.source_text(key);
+        // parser::parser guarantees language is set, and we haven't set timeout or cancellation
         let tree = parser.parse(text, None).unwrap();
         Some(Rc::new(Ast(tree)))
     } else {
@@ -82,7 +82,7 @@ fn ast(db: &dyn QueryGroup, key: Url) -> Option<Rc<Ast>> {
 }
 
 #[salsa::database(Storage)]
-struct Database {
+pub struct Database {
     storage: salsa::Storage<Self>,
 }
 
@@ -98,105 +98,8 @@ impl Default for Database {
 
 impl salsa::Database for Database {}
 
-trait Processable<T> {
+pub trait Processable<T> {
     fn process(self, db: &mut Database) -> T;
-}
-
-trait Request {
-    fn handle(&mut self, db: &mut Database);
-}
-
-// https://stackoverflow.com/a/48066387
-impl<T, U> Request for Option<(T, oneshot::Sender<U>)>
-where
-    T: Processable<U>,
-{
-    fn handle(&mut self, mut db: &mut Database) {
-        // this should always match, but even if it doesn't, it just means it's already been handled
-        if let Some((params, tx)) = self.take() {
-            let _ = tx.send(params.process(&mut db));
-        }
-    }
-}
-
-type BoxedRequest = Box<dyn Request + Send>;
-
-pub struct State {
-    tx: mpsc::Sender<BoxedRequest>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum AsyncError {
-    #[error("state loop ended prematurely")]
-    Send,
-    #[error("failed to receive result from state loop")]
-    Recv,
-}
-
-impl From<mpsc::error::SendError<BoxedRequest>> for AsyncError {
-    fn from(_: mpsc::error::SendError<BoxedRequest>) -> Self {
-        AsyncError::Send
-    }
-}
-
-impl From<oneshot::error::RecvError> for AsyncError {
-    fn from(_: oneshot::error::RecvError) -> Self {
-        AsyncError::Recv
-    }
-}
-
-pub trait LspMessage {
-    fn message_type(&self) -> MessageType;
-}
-
-impl LspMessage for AsyncError {
-    fn message_type(&self) -> MessageType {
-        MessageType::Error
-    }
-}
-
-impl State {
-    pub fn new() -> Self {
-        let (tx, mut rx) = mpsc::channel::<BoxedRequest>(1);
-        // we do this in a non-async thread because our db isn't thread-safe
-        thread::spawn(move || {
-            let mut db = Database::default();
-            // https://stackoverflow.com/a/52521592
-            while let Some(mut request) = futures::executor::block_on(rx.recv()) {
-                request.handle(&mut db);
-            }
-        });
-        State { tx }
-    }
-
-    // confusing given that the Processable trait has a different method with the same name
-    async fn process<T, U>(&self, params: T) -> Result<U, AsyncError>
-    where
-        T: Processable<U> + Send + 'static,
-        U: Send + 'static,
-    {
-        let (tx, rx) = oneshot::channel();
-        self.tx.send(Box::new(Some((params, tx)))).await?;
-        let result = rx.await?;
-        Ok(result)
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum OpError<T: 'static + Debug + std::error::Error> {
-    #[error(transparent)]
-    Async(#[from] AsyncError),
-    #[error("{0}")] // I think this is equivalent to #[error(transparent)]
-    Op(#[source] T),
-}
-
-impl<T: 'static + Debug + std::error::Error + LspMessage> LspMessage for OpError<T> {
-    fn message_type(&self) -> MessageType {
-        match self {
-            OpError::Async(error) => error.message_type(),
-            OpError::Op(error) => error.message_type(),
-        }
-    }
 }
 
 #[derive(Debug, Eq, thiserror::Error, PartialEq)]
@@ -205,26 +108,14 @@ pub struct AlreadyOpenError {
     uri: Url,
 }
 
-impl LspMessage for AlreadyOpenError {
-    fn message_type(&self) -> MessageType {
-        MessageType::Warning
-    }
-}
-
 #[derive(Debug, Eq, thiserror::Error, PartialEq)]
 #[error("{uri} not yet opened")]
 pub struct NotYetOpenedError {
     uri: Url,
 }
 
-impl LspMessage for NotYetOpenedError {
-    fn message_type(&self) -> MessageType {
-        MessageType::Warning
-    }
-}
-
 impl Database {
-    fn open_document(&mut self, uri: Url, text: String) -> Result<(), AlreadyOpenError> {
+    pub fn open_document(&mut self, uri: Url, text: String) -> Result<(), AlreadyOpenError> {
         // we always call set_source_text, even if the file is already opened, because we want to
         // give the client the benefit of the doubt and assume that we've made a bookkeeping
         // mistake, rather than risk possibly dropping data
@@ -243,15 +134,6 @@ impl Processable<Result<(), AlreadyOpenError>> for DidOpenTextDocumentParams {
     fn process(self, db: &mut Database) -> Result<(), AlreadyOpenError> {
         let doc = self.text_document;
         db.open_document(doc.uri, doc.text)
-    }
-}
-
-impl State {
-    pub async fn open_document(
-        &self,
-        params: DidOpenTextDocumentParams,
-    ) -> Result<(), OpError<AlreadyOpenError>> {
-        self.process(params).await?.map_err(OpError::Op)
     }
 }
 
@@ -284,15 +166,6 @@ pub enum EditError {
     },
 }
 
-impl LspMessage for EditError {
-    fn message_type(&self) -> MessageType {
-        match self {
-            EditError::NotYetOpened(error) => error.message_type(),
-            EditError::IncrementalSync { .. } => MessageType::Error,
-        }
-    }
-}
-
 impl Processable<Result<(), EditError>> for DidChangeTextDocumentParams {
     fn process(self, db: &mut Database) -> Result<(), EditError> {
         let doc = self.text_document;
@@ -311,15 +184,6 @@ impl Processable<Result<(), EditError>> for DidChangeTextDocumentParams {
             uri: doc.uri,
             version: doc.version,
         })
-    }
-}
-
-impl State {
-    pub async fn edit_document(
-        &self,
-        params: DidChangeTextDocumentParams,
-    ) -> Result<(), OpError<EditError>> {
-        self.process(params).await?.map_err(OpError::Op)
     }
 }
 
@@ -344,15 +208,6 @@ impl Database {
 impl Processable<Result<(), NotYetOpenedError>> for DidCloseTextDocumentParams {
     fn process(self, db: &mut Database) -> Result<(), NotYetOpenedError> {
         db.close_document(self.text_document.uri)
-    }
-}
-
-impl State {
-    pub async fn close_document(
-        &self,
-        params: DidCloseTextDocumentParams,
-    ) -> Result<(), OpError<NotYetOpenedError>> {
-        self.process(params).await?.map_err(OpError::Op)
     }
 }
 
@@ -389,18 +244,12 @@ fn diagnostics(db: &dyn QueryGroup, key: Url) -> im::Vector<Diagnostic> {
     }
 }
 
-struct DiagnosticsRequest(Url);
+pub struct DiagnosticsRequest(pub Url);
 
 impl Processable<im::Vector<Diagnostic>> for DiagnosticsRequest {
     fn process(self, db: &mut Database) -> im::Vector<Diagnostic> {
         let DiagnosticsRequest(uri) = self;
         db.diagnostics(uri)
-    }
-}
-
-impl State {
-    pub async fn get_diagnostics(&self, uri: Url) -> Result<im::Vector<Diagnostic>, AsyncError> {
-        self.process(DiagnosticsRequest(uri)).await
     }
 }
 
@@ -516,21 +365,12 @@ fn semantic_tokens(db: &dyn QueryGroup, key: Url) -> im::Vector<SemanticToken> {
     }
 }
 
-struct TokensRequest(Url);
+pub struct TokensRequest(pub Url);
 
 impl Processable<im::Vector<SemanticToken>> for TokensRequest {
     fn process(self, db: &mut Database) -> im::Vector<SemanticToken> {
         let TokensRequest(uri) = self;
         db.semantic_tokens(uri)
-    }
-}
-
-impl State {
-    pub async fn get_semantic_tokens(
-        &self,
-        uri: Url,
-    ) -> Result<im::Vector<SemanticToken>, AsyncError> {
-        self.process(TokensRequest(uri)).await
     }
 }
 

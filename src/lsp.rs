@@ -3,8 +3,172 @@ use lspower::{
     lsp::*,
     Client, LanguageServer, LspService, Server,
 };
-use quench::db::{self, LspMessage};
+use quench::db;
+use state::LspMessage;
 use std::sync::Arc;
+use url::Url;
+
+mod state {
+    use lspower::lsp::{
+        Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+        DidOpenTextDocumentParams, MessageType, SemanticToken,
+    };
+    use quench::db::{self, EditError};
+    use std::{fmt::Debug, thread};
+    use tokio::sync::{mpsc, oneshot};
+    use url::Url;
+
+    trait Request {
+        fn handle(&mut self, db: &mut db::Database);
+    }
+
+    // https://stackoverflow.com/a/48066387
+    impl<T, U> Request for Option<(T, oneshot::Sender<U>)>
+    where
+        T: db::Processable<U>,
+    {
+        fn handle(&mut self, mut db: &mut db::Database) {
+            let (params, tx) = self.take().unwrap();
+            let _ = tx.send(params.process(&mut db));
+        }
+    }
+
+    type BoxedRequest = Box<dyn Request + Send>;
+
+    #[derive(Debug, thiserror::Error)]
+    pub enum AsyncError {
+        #[error("state loop ended prematurely")]
+        Send,
+        #[error("failed to receive result from state loop")]
+        Recv,
+    }
+
+    impl From<mpsc::error::SendError<BoxedRequest>> for AsyncError {
+        fn from(_: mpsc::error::SendError<BoxedRequest>) -> Self {
+            AsyncError::Send
+        }
+    }
+
+    impl From<oneshot::error::RecvError> for AsyncError {
+        fn from(_: oneshot::error::RecvError) -> Self {
+            AsyncError::Recv
+        }
+    }
+
+    pub trait LspMessage {
+        fn message_type(&self) -> MessageType;
+    }
+
+    impl LspMessage for AsyncError {
+        fn message_type(&self) -> MessageType {
+            MessageType::Error
+        }
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub enum OpError<T: 'static + Debug + std::error::Error> {
+        #[error(transparent)]
+        Async(#[from] AsyncError),
+        #[error("{0}")] // I think this is equivalent to #[error(transparent)]
+        Op(#[source] T),
+    }
+
+    impl<T: 'static + Debug + std::error::Error + LspMessage> LspMessage for OpError<T> {
+        fn message_type(&self) -> MessageType {
+            match self {
+                OpError::Async(error) => error.message_type(),
+                OpError::Op(error) => error.message_type(),
+            }
+        }
+    }
+
+    impl LspMessage for db::AlreadyOpenError {
+        fn message_type(&self) -> MessageType {
+            MessageType::Warning
+        }
+    }
+
+    impl LspMessage for db::NotYetOpenedError {
+        fn message_type(&self) -> MessageType {
+            MessageType::Warning
+        }
+    }
+
+    impl LspMessage for EditError {
+        fn message_type(&self) -> MessageType {
+            match self {
+                EditError::NotYetOpened(error) => error.message_type(),
+                EditError::IncrementalSync { .. } => MessageType::Error,
+            }
+        }
+    }
+
+    pub struct State {
+        tx: mpsc::Sender<BoxedRequest>,
+    }
+
+    impl State {
+        pub fn new() -> Self {
+            let (tx, mut rx) = mpsc::channel::<BoxedRequest>(1);
+            // we do this in a non-async thread because our db isn't thread-safe
+            thread::spawn(move || {
+                let mut db = db::Database::default();
+                // https://stackoverflow.com/a/52521592
+                while let Some(mut request) = futures::executor::block_on(rx.recv()) {
+                    request.handle(&mut db);
+                }
+            });
+            State { tx }
+        }
+
+        // confusing given that the Processable trait has a different method with the same name
+        async fn process<T, U>(&self, params: T) -> Result<U, AsyncError>
+        where
+            T: db::Processable<U> + Send + 'static,
+            U: Send + 'static,
+        {
+            let (tx, rx) = oneshot::channel();
+            self.tx.send(Box::new(Some((params, tx)))).await?;
+            let result = rx.await?;
+            Ok(result)
+        }
+
+        pub async fn open_document(
+            &self,
+            params: DidOpenTextDocumentParams,
+        ) -> Result<(), OpError<db::AlreadyOpenError>> {
+            self.process(params).await?.map_err(OpError::Op)
+        }
+
+        pub async fn edit_document(
+            &self,
+            params: DidChangeTextDocumentParams,
+        ) -> Result<(), OpError<EditError>> {
+            self.process(params).await?.map_err(OpError::Op)
+        }
+
+        pub async fn close_document(
+            &self,
+            params: DidCloseTextDocumentParams,
+        ) -> Result<(), OpError<db::NotYetOpenedError>> {
+            self.process(params).await?.map_err(OpError::Op)
+        }
+
+        pub async fn get_diagnostics(
+            &self,
+            uri: Url,
+        ) -> Result<im::Vector<Diagnostic>, AsyncError> {
+            self.process(db::DiagnosticsRequest(uri)).await
+        }
+
+        pub async fn get_semantic_tokens(
+            &self,
+            uri: Url,
+        ) -> Result<im::Vector<SemanticToken>, AsyncError> {
+            self.process(db::TokensRequest(uri)).await
+        }
+    }
+}
 
 enum ServerErrorCode {
     // https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#responseMessage
@@ -14,7 +178,7 @@ enum ServerErrorCode {
 struct Backend {
     #[allow(dead_code)]
     client: Client,
-    state: Arc<db::State>,
+    state: Arc<state::State>,
 }
 
 impl Backend {
@@ -112,7 +276,7 @@ impl LanguageServer for Backend {
 
 #[tokio::main]
 async fn main() {
-    let state = db::State::new();
+    let state = state::State::new();
     let (service, messages) = LspService::new(|client| Backend {
         client,
         state: Arc::new(state),
