@@ -363,21 +363,13 @@ fn make_diagnostic(range: Range, message: String, severity: DiagnosticSeverity) 
 }
 
 fn diagnostics_helper(node: &Node, index: &text::Index) -> im::Vector<Diagnostic> {
-    if let Some(message) = {
-        if node.is_error() {
-            Some("error")
-        } else if node.is_missing() {
-            Some("missing")
-        } else {
-            None
-        }
-    } {
+    if node.is_error() || node.is_missing() {
         im::vector![make_diagnostic(
             Range::new(
                 index.to_lsp(node.start_position()),
                 index.to_lsp(node.end_position()),
             ),
-            format!("syntax {}", message),
+            format!("syntax {}", node.to_sexp()),
             DiagnosticSeverity::Error,
         )]
     } else {
@@ -663,8 +655,8 @@ mod tests {
         assert_eq!(
             diagnostics,
             im::vector![
-                make_error(0, 6, 0, 14, "syntax error"),
-                make_error(0, 24, 0, 24, "syntax missing"),
+                make_error(0, 6, 0, 14, "syntax (ERROR (string))"),
+                make_error(0, 24, 0, 24, "syntax (MISSING \";\")"),
             ],
         );
     }
