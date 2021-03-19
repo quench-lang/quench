@@ -4,6 +4,7 @@ use structopt::StructOpt;
 
 pub mod db;
 pub mod parser;
+pub mod text;
 
 #[derive(Debug, StructOpt)]
 #[structopt(about)]
