@@ -1,13 +1,3 @@
-use lspower::{
-    jsonrpc::{Error, ErrorCode, Result},
-    lsp::*,
-    Client, LanguageServer, LspService, Server,
-};
-use quench::db;
-use state::LspMessage;
-use std::sync::Arc;
-use url::Url;
-
 mod state {
     use lspower::lsp::{
         Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
@@ -169,6 +159,16 @@ mod state {
         }
     }
 }
+
+use lspower::{
+    jsonrpc::{Error, ErrorCode, Result},
+    lsp::*,
+    Client, LanguageServer, LspService, Server,
+};
+use quench::db;
+use state::LspMessage;
+use std::sync::Arc;
+use url::Url;
 
 enum ServerErrorCode {
     // https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#responseMessage

@@ -1,6 +1,5 @@
-use std::convert::TryFrom;
-
 use lspower::lsp::Position;
+use std::convert::TryFrom;
 use tree_sitter::Point;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
