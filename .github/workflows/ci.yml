@@ -18,6 +18,7 @@ jobs:
         run: cargo test
       - name: Install
         run: cargo install --path .
+      # partially covered by tests/cli.rs, but this checks the shebang
       - name: Check output of hello example
         run: examples/hello.qn | git diff --no-index examples/hello.txt -
       - uses: actions/upload-artifact@v2

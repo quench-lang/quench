@@ -743,6 +743,7 @@ dependencies = [
  "lspower",
  "pretty_assertions",
  "salsa",
+ "slurp",
  "structopt",
  "strum",
  "strum_macros",
@@ -977,6 +978,12 @@ name = "slab"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
+
+[[package]]
+name = "slurp"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673e801a0f3b2f8c5c5c4371ba6e09e5ace34bca8df26db5945d01f072caf704"
 
 [[package]]
 name = "smallvec"

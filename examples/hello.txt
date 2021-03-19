@@ -1,1 +1,5 @@
-(source_file (comment) (call function: (identifier) arguments: (arguments (string))))
+AST:
+
+    (source_file (comment) (call function: (identifier) arguments: (arguments (string))))
+
+No diagnostics.

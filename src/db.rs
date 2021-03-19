@@ -379,7 +379,6 @@ mod tests {
     use super::*;
     use lspower::lsp::VersionedTextDocumentIdentifier;
     use pretty_assertions::assert_eq;
-    use std::{fs::File, io::Read};
 
     fn foo_db(text: String) -> (Database, Url) {
         let mut db = Database::default();
@@ -490,7 +489,8 @@ mod tests {
 
     #[test]
     fn test_diagnostics_hello_world() {
-        let (db, uri) = foo_db(String::from("print(\"Hello,\"\" world!\")"));
+        let (db, uri) =
+            foo_db(slurp::read_all_to_string("examples/hello_syntax_errors.qn").unwrap());
         let diagnostics = db.diagnostics(uri);
         assert_eq!(
             diagnostics,
@@ -518,12 +518,7 @@ mod tests {
 
     #[test]
     fn test_tokens_hello_world() {
-        let (db, uri) = foo_db({
-            let mut file = File::open("examples/hello.qn").unwrap();
-            let mut contents = String::new();
-            file.read_to_string(&mut contents).unwrap();
-            contents
-        });
+        let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
         let tokens = db.semantic_tokens(uri);
         assert_eq!(
             tokens,
