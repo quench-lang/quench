@@ -7,13 +7,19 @@ Prerequisites:
 - [Rust][]
 - [Tree-sitter CLI][]
 
-First install:
+Run an example using `cargo run`:
+
+```sh
+cargo run -- examples/hello.qn
+```
+
+Or if you want to use the `#!/usr/bin/env quench` shebang, first install:
 
 ```sh
 cargo install --locked --path .
 ```
 
-Then run an example:
+Then run the example directly:
 
 ```sh
 examples/hello.qn

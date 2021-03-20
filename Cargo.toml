@@ -1,8 +1,16 @@
 [package]
 name = "quench"
 version = "0.1.0"
-description = "A programming language."
+authors = ["Sam Estep <sam@samestep.com>"]
 edition = "2018"
+description = "A programming language."
+license = "MIT"
+categories = [
+  "command-line-utilities",
+  "compilers",
+  "development-tools",
+]
+default-run = "quench"
 
 [[bin]]
 name = "quench-lsp"
