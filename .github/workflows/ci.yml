@@ -27,7 +27,8 @@ jobs:
       # partially covered by tests/cli.rs, but this checks the shebang
       - name: Check output of hello example
         run: examples/hello.qn | git diff --no-index examples/hello.txt -
-      - uses: actions/upload-artifact@v2
+      - name: Upload quench-lsp for next job
+        uses: actions/upload-artifact@v2
         with:
           name: quench-lsp
           path: '~/.cargo/bin/quench-lsp'
