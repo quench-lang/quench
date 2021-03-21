@@ -14,7 +14,7 @@ jobs:
         with:
           toolchain: stable
       - name: Publish
-        run: cargo publish
+        run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
   vscode-marketplace:
     runs-on: ubuntu-18.04
     defaults:
