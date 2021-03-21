@@ -32,6 +32,8 @@ jobs:
           toolchain: stable
       - name: Get dependencies from cache
         uses: Swatinem/rust-cache@v1
+      - name: Dry-run publish
+        run: cargo publish --dry-run
       - name: Run tests
         run: cargo test
       - name: Install
@@ -53,6 +55,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install Node
+        uses: actions/setup-node@v2
+      - name: Install dependencies
+        run: npm install
+      - name: Package
+        run: vsce package
       - name: Download quench-lsp from previous job
         uses: actions/download-artifact@v2
         with:
@@ -61,9 +69,5 @@ jobs:
         run: |
           chmod +x $GITHUB_WORKSPACE/quench-lsp
           sudo mv $GITHUB_WORKSPACE/quench-lsp /usr/local/bin
-      - name: Install Node
-        uses: actions/setup-node@v2
-      - name: Install dependencies
-        run: npm install
       - name: Run tests
         run: xvfb-run -a npm test
