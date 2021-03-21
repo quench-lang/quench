@@ -1,5 +1,4 @@
-# Quench
-
+# Quench [![crates.io][]][crates.io link] [![docs.rs]][docs.rs link]
 A programming language.
 
 ## Prerequisites
@@ -44,6 +43,10 @@ _I am providing code in the repository to you under an open source license.
 Because this is my personal repository, the license you receive to my code is
 from me and not my employer (Facebook)._
 
+[crates.io]: https://img.shields.io/crates/v/quench
+[crates.io link]: https://crates.io/crates/quench
+[docs.rs]: https://docs.rs/quench/badge.svg
+[docs.rs link]: https://docs.rs/quench
 [editors]: /editors
 [tree-sitter-quench]: /tree-sitter-quench
 [rust]: https://www.rust-lang.org/tools/install
