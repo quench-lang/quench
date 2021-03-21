@@ -60,7 +60,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Package
-        run: vsce package
+        run: npx vsce package
       - name: Download quench-lsp from previous job
         uses: actions/download-artifact@v2
         with:
