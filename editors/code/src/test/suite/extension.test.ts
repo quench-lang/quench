@@ -7,7 +7,7 @@ async function sleep(ms: number) {
 }
 
 async function activate(docUri: vscode.Uri) {
-  const ext = vscode.extensions.getExtension('samestep.quench')!;
+  const ext = vscode.extensions.getExtension('quench.quench')!;
   await ext.activate();
   try {
     const doc = await vscode.workspace.openTextDocument(docUri);
