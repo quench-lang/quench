@@ -15,6 +15,8 @@ jobs:
           toolchain: stable
       - name: Publish
         run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
+      - name: Ensure empty Git status
+        run: "$GITHUB_WORKSPACE/report_git_status.sh"
   vscode-marketplace:
     runs-on: ubuntu-18.04
     defaults:
@@ -31,3 +33,5 @@ jobs:
         run: npx vsce publish --baseImagesUrl="https://github.com/quench-lang/quench/raw/${GITHUB_REF#refs/tags/}/editors/code"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Ensure empty Git status
+        run: "$GITHUB_WORKSPACE/report_git_status.sh"
