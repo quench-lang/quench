@@ -6,7 +6,7 @@
   "publisher": "samestep",
   "repository": {
     "type": "git",
-    "url": "https://github.com/samestep/quench.git",
+    "url": "https://github.com/quench-lang/quench.git",
     "directory": "editors/code"
   },
   "engines": {

@@ -30,5 +30,5 @@ observe the syntax highlighting:
 ![screnshot of hello.qn in VS Code](hello.png)
 
 [node]: https://github.com/nvm-sh/nvm#install--update-script
-[quench]: https://github.com/samestep/quench
+[quench]: https://github.com/quench-lang/quench
 [vs code]: https://code.visualstudio.com/download

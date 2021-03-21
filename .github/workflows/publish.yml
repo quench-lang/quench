@@ -28,6 +28,6 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Publish
-        run: npx vsce publish --baseImagesUrl="https://github.com/samestep/quench/raw/${GITHUB_REF#refs/tags/}/editors/code"
+        run: npx vsce publish --baseImagesUrl="https://github.com/quench-lang/quench/raw/${GITHUB_REF#refs/tags/}/editors/code"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}

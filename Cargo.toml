@@ -4,7 +4,7 @@ version = "0.1.2"
 authors = ["Sam Estep <sam@samestep.com>"]
 edition = "2018"
 description = "A programming language."
-repository = "https://github.com/samestep/quench"
+repository = "https://github.com/quench-lang/quench"
 license = "MIT"
 categories = [
   "command-line-utilities",
