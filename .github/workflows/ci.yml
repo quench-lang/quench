@@ -33,7 +33,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: 1.44.1
       - name: Get dependencies from cache
         uses: Swatinem/rust-cache@v1
       - name: Run tests
