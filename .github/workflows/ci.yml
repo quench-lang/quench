@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
 jobs:
   tree-sitter:
     runs-on: ubuntu-18.04
@@ -25,6 +26,7 @@ jobs:
         run: npx tree-sitter test
       - name: Ensure empty Git status
         run: "$GITHUB_WORKSPACE/report_git_status.sh"
+
   rust:
     strategy:
       matrix:
@@ -56,6 +58,7 @@ jobs:
           path: '~/.cargo/bin/quench-lsp'
       - name: Ensure empty Git status
         run: "$GITHUB_WORKSPACE/report_git_status.sh"
+
   vscode:
     needs: rust
     runs-on: ubuntu-18.04
