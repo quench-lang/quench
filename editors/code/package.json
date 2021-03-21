@@ -2,7 +2,7 @@
   "name": "quench",
   "displayName": "Quench",
   "description": "",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "samestep",
   "repository": "github:samestep/quench",
   "engines": {

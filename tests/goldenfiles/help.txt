@@ -1,4 +1,4 @@
-quench 0.1.1
+quench 0.1.2
 A programming language.
 
 USAGE:
