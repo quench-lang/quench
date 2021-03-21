@@ -2,12 +2,13 @@
 
 A programming language.
 
-Prerequisites:
+## Prerequisites
 
 - [Rust][]
-- [Tree-sitter CLI][]
 
-Run an example using `cargo run`:
+## Usage
+
+Clone this repo, `cd` into it, and run an example using `cargo run`:
 
 ```sh
 cargo run -- examples/hello.qn
@@ -30,6 +31,11 @@ examples/hello.qn
 Support (and instructions) for specific text editors can be found in the
 [editors][] folder.
 
+## Development
+
+If you want to modify the grammar, be sure to follow the instructions in the
+[tree-sitter-quench][] folder.
+
 ## License
 
 This repository is released under the [MIT License](/LICENSE).
@@ -39,5 +45,5 @@ Because this is my personal repository, the license you receive to my code is
 from me and not my employer (Facebook)._
 
 [editors]: /editors
+[tree-sitter-quench]: /tree-sitter-quench
 [rust]: https://www.rust-lang.org/tools/install
-[tree-sitter cli]: https://github.com/tree-sitter/tree-sitter/issues/820#issuecomment-772975196

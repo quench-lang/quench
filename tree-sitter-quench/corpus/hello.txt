@@ -1,0 +1,16 @@
+========================================
+Shebangs
+========================================
+
+#!/usr/bin/env quench
+
+print("Hello, world!");
+
+---
+
+(source_file
+  (comment)
+  (call
+    function: (identifier)
+    arguments: (arguments
+      (string))))

@@ -1,0 +1,8 @@
+{
+  "name": "tree-sitter-quench",
+  "version": "0.1.1",
+  "description": "",
+  "devDependencies": {
+    "tree-sitter-cli": "^0.17"
+  }
+}

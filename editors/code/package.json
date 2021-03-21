@@ -2,8 +2,9 @@
   "name": "quench",
   "displayName": "Quench",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "publisher": "samestep",
+  "repository": "github:samestep/quench",
   "engines": {
     "vscode": "^1.53.0"
   },
