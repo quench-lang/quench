@@ -32,8 +32,6 @@ jobs:
           toolchain: stable
       - name: Get dependencies from cache
         uses: Swatinem/rust-cache@v1
-      - name: Dry-run publish
-        run: cargo publish --dry-run
       - name: Run tests
         run: cargo test
       - name: Install
