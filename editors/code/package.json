@@ -3,7 +3,7 @@
   "displayName": "Quench",
   "description": "",
   "version": "0.1.2",
-  "publisher": "samestep",
+  "publisher": "quench",
   "repository": {
     "type": "git",
     "url": "https://github.com/quench-lang/quench.git",
