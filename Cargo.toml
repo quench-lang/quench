@@ -37,7 +37,10 @@ cc = "1"
 
 [dev-dependencies]
 assert_cmd = "1"
+comrak = "0.10"
 goldenfile = "1"
 pretty_assertions = "0.7"
+regex = "1"
 serde_json = "1"
 toml = "0.5"
+yaml-rust = "0.4"
