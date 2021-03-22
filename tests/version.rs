@@ -52,7 +52,7 @@ fn test_minimum_rustc() {
         ));
 
         let mut versions = HashSet::new();
-        let re = Regex::new(r"rustc-(\d+\.\d+)").unwrap();
+        let re = Regex::new(r"rustc-(\d+\.\d+)\+").unwrap();
         for node in heading.children() {
             if let comrak::nodes::NodeValue::Link(comrak::nodes::NodeLink { .. }) =
                 &node.data.borrow().value
@@ -75,7 +75,7 @@ fn test_minimum_rustc() {
     assert!(!readme_versions.is_empty());
 
     let ci_versions: HashSet<String> = {
-        let re = Regex::new(r"^\d+\.\d+").unwrap();
+        let re = Regex::new(r"^(\d+\.\d+)\.\d+$").unwrap();
         YamlLoader::load_from_str(&slurp::read_all_to_string(".github/workflows/ci.yml").unwrap())
             .unwrap()
             .get(0)
@@ -103,8 +103,8 @@ fn test_minimum_rustc() {
             .as_vec()
             .unwrap()
             .iter()
-            .filter_map(|version| re.find(version.as_str().unwrap()))
-            .map(|m| String::from(m.as_str()))
+            .filter_map(|version| re.captures(version.as_str().unwrap()))
+            .map(|m| String::from(&m[1]))
             .collect()
     };
     assert!(
