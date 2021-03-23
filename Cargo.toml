@@ -11,6 +11,13 @@ categories = [
   "compilers",
   "development-tools",
 ]
+include = [
+  "/build.rs",
+  "/LICENSE",
+  "/README.md",
+  "/src",
+  "/tree-sitter-quench/src",
+]
 default-run = "quench"
 
 [[bin]]

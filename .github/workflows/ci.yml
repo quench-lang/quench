@@ -27,6 +27,23 @@ jobs:
       - name: Ensure empty Git status
         run: "$GITHUB_WORKSPACE/report_git_status.sh"
 
+  package:
+    runs-on: ubuntu-18.04
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      # don't pull from cache, because cargo package doesn't seem to benefit
+      - name: Package
+        run: cargo package
+      - name: Ensure empty Git status
+        run: "$GITHUB_WORKSPACE/report_git_status.sh"
+
   rust:
     strategy:
       matrix:
