@@ -5,6 +5,45 @@ on:
       - created
 
 jobs:
+  binaries:
+    strategy:
+      matrix:
+        include:
+          - platform: linux
+            label: ubuntu-20.04
+          - platform: macos
+            label: macos-10.15
+          - platform: windows
+            label: windows-2019
+    runs-on: ${{ matrix.label }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build binaries
+        run: cargo build --release
+      - name: Upload quench
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./target/release/quench
+          asset_path: quench-${{ matrix.platform }}
+          asset_content_type: application/octet-stream
+      - name: Upload quench-lsp
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./target/release/quench-lsp
+          asset_path: quench-lsp-${{ matrix.platform }}
+          asset_content_type: application/octet-stream
+
   crates-io:
     runs-on: ubuntu-20.04
     steps:
