@@ -33,7 +33,7 @@ function start(command: string) {
 export async function activate(context: vscode.ExtensionContext) {
   const manifest = path.join(context.extensionPath, 'package.json');
   const { version } = JSON.parse(await fs.readFile(manifest, 'utf8'));
-  const dir = path.join(os.homedir(), '.quench', version, 'bin');
+  const dir = path.join(os.homedir(), '.quench', 'bin');
   // mkdir succeeds if dir already exists, since we set recursive to true
   await fs.mkdir(dir, { 'recursive': true });
   const server = path.join(dir, 'quench-lsp');

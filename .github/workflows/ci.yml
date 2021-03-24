@@ -102,7 +102,8 @@ jobs:
       - name: Make quench-lsp executable
         run: |
           chmod +x $GITHUB_WORKSPACE/quench-lsp
-          sudo mv $GITHUB_WORKSPACE/quench-lsp /usr/local/bin
+          mkdir -p ~/.quench/bin
+          mv $GITHUB_WORKSPACE/quench-lsp ~/.quench/bin
       - name: Run tests
         run: xvfb-run -a npm test
       - name: Ensure empty Git status
