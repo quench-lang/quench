@@ -6,7 +6,7 @@ on:
 
 jobs:
   crates-io:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,7 +20,7 @@ jobs:
         run: "$GITHUB_WORKSPACE/report_git_status.sh"
 
   vscode-marketplace:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     defaults:
       run:
         working-directory: editors/code
