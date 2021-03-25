@@ -38,6 +38,14 @@
       "type": "object",
       "title": "Quench configuration",
       "properties": {
+        "quench.server.path": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "default": null,
+          "markdownDescription": "Path to quench-lsp executable."
+        },
         "quench.trace.server": {
           "scope": "window",
           "type": "string",

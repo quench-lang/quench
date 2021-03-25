@@ -10,7 +10,20 @@ import * as lsp from 'vscode-languageclient/node';
 
 let client: lsp.LanguageClient;
 
-function translatePlatform(platform: string) {
+function defaultServerPath(): string {
+  return path.join(os.homedir(), '.quench', 'bin', 'quench-lsp');
+}
+
+function serverPath(): string {
+  const conf = vscode.workspace.getConfiguration('quench').get('server.path');
+  if (typeof conf === 'string') {
+    return conf;
+  } else {
+    return defaultServerPath();
+  }
+}
+
+function translatePlatform(platform: string): string {
   if (platform === 'darwin') {
     return 'macos';
   } else if (platform === 'win32') {
@@ -33,14 +46,16 @@ function start(command: string) {
 export async function activate(context: vscode.ExtensionContext) {
   const manifest = path.join(context.extensionPath, 'package.json');
   const { version } = JSON.parse(await fs.readFile(manifest, 'utf8'));
-  const dir = path.join(os.homedir(), '.quench', 'bin');
-  // mkdir succeeds if dir already exists, since we set recursive to true
-  await fs.mkdir(dir, { 'recursive': true });
-  const server = path.join(dir, 'quench-lsp');
+  let server = serverPath();
   const exists = await fs.stat(server).then(() => true, () => false);
   if (exists) {
     start(server);
   } else {
+    server = defaultServerPath();
+    const dir = path.dirname(server);
+    // mkdir succeeds if dir already exists, since we set recursive to true
+    await fs.mkdir(dir, { 'recursive': true });
+
     const download = 'Download';
     const userResponse = await vscode.window.showInformationMessage(
       'Quench language server is not installed.',
