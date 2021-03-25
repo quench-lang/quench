@@ -4,6 +4,7 @@
   "description": "",
   "version": "0.1.2",
   "publisher": "quench",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/quench-lang/quench.git",
