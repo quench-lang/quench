@@ -1,4 +1,4 @@
-quench 0.2.1
+quench 0.2.2
 
 Here is an example Quench program:
 
