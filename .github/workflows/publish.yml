@@ -7,6 +7,7 @@ on:
 jobs:
   binaries:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - platform: linux
@@ -46,8 +47,6 @@ jobs:
           asset_path: ./target/release/quench-lsp${{ matrix.extension }}
           asset_name: quench-lsp-${{ matrix.platform }}${{ matrix.extension }}
           asset_content_type: application/octet-stream
-      - name: Ensure empty Git status
-        run: "$GITHUB_WORKSPACE/report_git_status.sh"
 
   crates-io:
     runs-on: ubuntu-20.04
