@@ -64,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
     if (userResponse === download) {
       const platform = translatePlatform(process.platform);
       const ext = platform === 'windows' ? '.exe' : '';
-      const url = `https://github.com/quench/quench/releases/download/v${version}/quench-lsp-${platform}${ext}`;
+      const url = `https://github.com/quench-lang/quench/releases/download/v${version}/quench-lsp-${platform}${ext}`;
       // https://stackoverflow.com/a/11944984
       https.get(url, response => {
         const { statusCode } = response;

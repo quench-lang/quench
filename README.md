@@ -7,7 +7,7 @@ A programming language.
 ### Linux
 
 ```sh
-curl -o quench -L https://github.com/quench/quench/releases/download/latest/quench-linux
+curl -o quench -L https://github.com/quench-lang/quench/releases/latest/download/quench-linux
 chmod +x quench
 sudo mv quench /usr/local/bin
 ```
@@ -15,7 +15,7 @@ sudo mv quench /usr/local/bin
 ### macOS
 
 ```sh
-curl -o quench -L https://github.com/quench/quench/releases/download/latest/quench-macos
+curl -o quench -L https://github.com/quench-lang/quench/releases/latest/download/quench-macos
 chmod +x quench
 sudo mv quench /usr/local/bin
 ```
@@ -85,7 +85,7 @@ from me and not my employer (Facebook)._
 [docs.rs]: https://docs.rs/quench/badge.svg
 [docs.rs link]: https://docs.rs/quench
 [editors]: /editors
-[quench-windows.exe]: https://github.com/quench/quench/releases/download/latest/quench-windows.exe
+[quench-windows.exe]: https://github.com/quench-lang/quench/releases/download/latest/quench-windows.exe
 [tree-sitter-quench]: /tree-sitter-quench
 [rust]: https://www.rust-lang.org/tools/install
 [rust release]: https://github.com/rust-lang/rust/blob/1.48.0/RELEASES.md#libraries
