@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-quench",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "",
   "dependencies": {
     "nan": "^2.14.2"

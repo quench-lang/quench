@@ -1,5 +1,24 @@
-quench 0.1.2
-A programming language.
+quench 0.2.0
+
+Here is an example Quench program:
+
+    #!/usr/bin/env quench
+    print("Hello, world!");
+
+Save the above contents as hello.qn and run these commands:
+
+    chmod +x hello.qn
+    ./hello.qn
+
+You should see this output:
+
+    AST:
+
+        (source_file (comment) (call function: (identifier) arguments: (arguments (string))))
+
+    No diagnostics.
+
+As you can see, Quench can parse your program, but can't run it yet. Stay tuned!
 
 USAGE:
     quench <file> [args]...

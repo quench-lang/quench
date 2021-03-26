@@ -2,11 +2,50 @@
 
 A programming language.
 
-## Prerequisites
+## Installation
+
+### Linux
+
+```sh
+curl -o quench -L https://github.com/quench/quench/releases/download/latest/quench-linux
+chmod +x quench
+sudo mv quench /usr/local/bin
+```
+
+### macOS
+
+```sh
+curl -o quench -L https://github.com/quench/quench/releases/download/latest/quench-macos
+chmod +x quench
+sudo mv quench /usr/local/bin
+```
+
+### Windows
+
+Save [quench-windows.exe][] as `quench` somewhere on your PATH.
+
+## Usage
+
+On a Unix-like system, pass `--help` to the binary you just installed:
+
+```sh
+quench --help
+```
+
+You will see an example Quench program and instructions on how to run it.
+
+## Editors
+
+Support (and instructions) for specific text editors can be found in the
+[editors][] folder.
+
+## Development
+
+### Prerequisites
 
 - [Rust][]
 
-## Usage
+### Basics
 
 Clone this repo, `cd` into it, and run an example using `cargo run`:
 
@@ -26,12 +65,7 @@ Then run the example directly:
 examples/hello.qn
 ```
 
-## Editors
-
-Support (and instructions) for specific text editors can be found in the
-[editors][] folder.
-
-## Development
+### Other
 
 If you want to modify the grammar, be sure to follow the instructions in the
 [tree-sitter-quench][] folder.
@@ -51,6 +85,7 @@ from me and not my employer (Facebook)._
 [docs.rs]: https://docs.rs/quench/badge.svg
 [docs.rs link]: https://docs.rs/quench
 [editors]: /editors
+[quench-windows.exe]: https://github.com/quench/quench/releases/download/latest/quench-windows.exe
 [tree-sitter-quench]: /tree-sitter-quench
 [rust]: https://www.rust-lang.org/tools/install
 [rust release]: https://github.com/rust-lang/rust/blob/1.48.0/RELEASES.md#libraries

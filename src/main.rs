@@ -4,8 +4,30 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use url::Url;
 
+const ABOUT: &str = r#"
+Here is an example Quench program:
+
+    #!/usr/bin/env quench
+    print("Hello, world!");
+
+Save the above contents as hello.qn and run these commands:
+
+    chmod +x hello.qn
+    ./hello.qn
+
+You should see this output:
+
+    AST:
+
+        (source_file (comment) (call function: (identifier) arguments: (arguments (string))))
+
+    No diagnostics.
+
+As you can see, Quench can parse your program, but can't run it yet. Stay tuned!
+"#;
+
 #[derive(Debug, StructOpt)]
-#[structopt(about)]
+#[structopt(about = ABOUT)]
 struct Opt {
     /// Source file to run as a script
     file: PathBuf,
