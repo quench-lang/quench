@@ -1,9 +1,9 @@
-# VS Code extension for Quench
+# [VS Code extension for Quench][marketplace]
 
 This extension provides support for the [Quench][] language via a [language
 server][lsp], which it automatically downloads if you don't already have it
-installed. To use, simply install the extension, click the "Download" button if
-prompted, and open a file with extension `.qn`:
+installed. To use, simply install this extension, open any file whose name ends
+with `.qn`, and click the "Download" button if prompted.
 
 ![screnshot of hello.qn in VS Code](hello.png)
 
@@ -36,6 +36,7 @@ Then open a Quench source file (such as `examples/hello.qn` from this
 repository) to activate it as normal.
 
 [lsp]: https://microsoft.github.io/language-server-protocol/
+[marketplace]: https://marketplace.visualstudio.com/items?itemName=quench.quench
 [node]: https://github.com/nvm-sh/nvm#install--update-script
 [quench]: https://github.com/quench-lang/quench
 [vs code]: https://code.visualstudio.com/download

@@ -12,7 +12,7 @@ chmod +x quench
 sudo mv quench /usr/local/bin
 ```
 
-### macOS
+### macOS 10
 
 ```sh
 curl -o quench -L https://github.com/quench-lang/quench/releases/latest/download/quench-macos
@@ -85,7 +85,7 @@ from me and not my employer (Facebook)._
 [docs.rs]: https://docs.rs/quench/badge.svg
 [docs.rs link]: https://docs.rs/quench
 [editors]: /editors
-[quench-windows.exe]: https://github.com/quench-lang/quench/releases/download/latest/quench-windows.exe
+[quench-windows.exe]: https://github.com/quench-lang/quench/releases/latest/download/quench-windows.exe
 [tree-sitter-quench]: /tree-sitter-quench
 [rust]: https://www.rust-lang.org/tools/install
 [rust release]: https://github.com/rust-lang/rust/blob/1.48.0/RELEASES.md#libraries
