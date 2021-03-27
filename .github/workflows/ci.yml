@@ -70,11 +70,11 @@ jobs:
       # partially covered by tests/cli.rs, but this checks the shebang
       - name: Check output of hello example
         run: examples/hello.qn | git diff --no-index examples/hello.txt -
-      - name: Upload quench-lsp for next job
+      - name: Upload quench for next job
         uses: actions/upload-artifact@v2
         with:
-          name: quench-lsp
-          path: '~/.cargo/bin/quench-lsp'
+          name: quench
+          path: '~/.cargo/bin/quench'
       - name: Ensure empty Git status
         run: "$GITHUB_WORKSPACE/report_git_status.sh"
 
@@ -95,18 +95,18 @@ jobs:
         run: npm install
       - name: Package
         run: npx vsce package
-      - name: Download quench-lsp from previous job
+      - name: Download quench from previous job
         uses: actions/download-artifact@v2
         with:
-          name: quench-lsp
-      - name: Make quench-lsp executable
+          name: quench
+      - name: Make quench executable
         # https://stackoverflow.com/a/53637605
         run: |
           VERSION=$(node -e "console.log(require('./package.json').version);")
-          FILE="$HOME/.quench/$VERSION/bin"
-          chmod +x $GITHUB_WORKSPACE/quench-lsp
-          mkdir -p "$FILE"
-          mv $GITHUB_WORKSPACE/quench-lsp "$FILE"
+          DIR="$HOME/.quench/$VERSION/bin"
+          chmod +x $GITHUB_WORKSPACE/quench
+          mkdir -p "$DIR"
+          mv $GITHUB_WORKSPACE/quench "$DIR"
       - name: Run tests
         run: xvfb-run -a npm test
       - name: Ensure empty Git status

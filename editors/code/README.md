@@ -31,9 +31,11 @@ Then compile:
 npm run compile
 ```
 
-Next, from VS Code, press F5 to open a new window with this extension loaded.
-Then open a Quench source file (such as `examples/hello.qn` from this
-repository) to activate it as normal.
+Next, from VS Code, press F5 to open a new window with this extension loaded. To
+avoid developing with a mismatched version of Quench itself, you may also need
+to build Quench from source and change the `quench.server.path` setting to point
+to the binary you've built. Then open a Quench source file (such as
+`examples/hello.qn` from this repository) to activate it as normal.
 
 [lsp]: https://microsoft.github.io/language-server-protocol/
 [marketplace]: https://marketplace.visualstudio.com/items?itemName=quench.quench

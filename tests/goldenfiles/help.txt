@@ -5,12 +5,16 @@ Here is an example Quench program:
     #!/usr/bin/env quench
     print("Hello, world!");
 
-Save the above contents as hello.qn and run these commands:
+Save the above contents as hello.qn and run this command:
+
+    quench run hello.qn
+
+Or on a Unix-like system, you could instead run these two commands:
 
     chmod +x hello.qn
     ./hello.qn
 
-You should see this output:
+Either way, you should see this output:
 
     AST:
 
@@ -21,12 +25,13 @@ You should see this output:
 As you can see, Quench can parse your program, but can't run it yet. Stay tuned!
 
 USAGE:
-    quench <file> [args]...
+    quench <SUBCOMMAND>
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
 
-ARGS:
-    <file>       Source file to run as a script
-    <args>...    Arguments to pass to the script
+SUBCOMMANDS:
+    help    Prints this message or the help of the given subcommand(s)
+    lsp     Starts the language server
+    run     Runs a script

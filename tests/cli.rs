@@ -22,7 +22,7 @@ fn test_examples() {
         let path = entry.unwrap().path();
         if path.extension() == Some(OsStr::new("qn")) {
             let mut cmd = Command::cargo_bin("quench").unwrap();
-            let assert = cmd.arg(&path).assert().success().stderr("");
+            let assert = cmd.arg("run").arg(&path).assert().success().stderr("");
 
             let mut file = mint
                 .new_goldenfile(path.with_extension("txt").file_name().unwrap())

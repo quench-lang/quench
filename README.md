@@ -26,7 +26,7 @@ Save [quench-windows.exe][] as `quench.exe` somewhere on your PATH.
 
 ## Usage
 
-On a Unix-like system, pass `--help` to the binary you just installed:
+Pass `--help` to the binary you just installed:
 
 ```sh
 quench --help

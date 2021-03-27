@@ -11,7 +11,7 @@ import * as lsp from 'vscode-languageclient/node';
 let client: lsp.LanguageClient;
 
 function defaultServerPath(version: string, ext: string): string {
-  return path.join(os.homedir(), '.quench', version, 'bin', `quench-lsp${ext}`);
+  return path.join(os.homedir(), '.quench', version, 'bin', `quench${ext}`);
 }
 
 function serverPath(version: string, ext: string): string {
@@ -37,7 +37,7 @@ function start(command: string) {
   client = new lsp.LanguageClient(
     'quench',
     'Quench',
-    { command },
+    { command, args: ["lsp"] },
     { documentSelector: [{ scheme: 'file', language: 'quench' }] },
   );
   client.start();
@@ -64,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
       download,
     );
     if (userResponse === download) {
-      const url = `https://github.com/quench-lang/quench/releases/download/v${version}/quench-lsp-${platform}${ext}`;
+      const url = `https://github.com/quench-lang/quench/releases/download/v${version}/quench-${platform}${ext}`;
       // https://stackoverflow.com/a/11944984
       https.get(url, (response: any) => {
         const { statusCode } = response;

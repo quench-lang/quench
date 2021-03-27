@@ -1,6 +1,6 @@
 use lspower::lsp;
 use quench::db::{self, QueryGroup};
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 use structopt::StructOpt;
 use url::Url;
 
@@ -10,12 +10,16 @@ Here is an example Quench program:
     #!/usr/bin/env quench
     print("Hello, world!");
 
-Save the above contents as hello.qn and run these commands:
+Save the above contents as hello.qn and run this command:
+
+    quench run hello.qn
+
+Or on a Unix-like system, you could instead run these two commands:
 
     chmod +x hello.qn
     ./hello.qn
 
-You should see this output:
+Either way, you should see this output:
 
     AST:
 
@@ -26,22 +30,25 @@ You should see this output:
 As you can see, Quench can parse your program, but can't run it yet. Stay tuned!
 "#;
 
-#[derive(Debug, StructOpt)]
+#[derive(StructOpt)]
 #[structopt(about = ABOUT)]
-struct Opt {
-    /// Source file to run as a script
-    file: PathBuf,
+enum Opt {
+    /// Starts the language server
+    Lsp,
+    /// Runs a script
+    Run {
+        /// Source file to run as a script
+        file: PathBuf,
 
-    /// Arguments to pass to the script
-    args: Vec<String>,
+        /// Arguments to pass to the script
+        args: Vec<String>,
+    },
 }
 
-fn main() -> anyhow::Result<()> {
-    let opt = Opt::from_args();
-
-    let uri = Url::from_file_path(opt.file.canonicalize()?).unwrap();
+fn run(file: PathBuf, _args: &[String]) -> anyhow::Result<()> {
+    let uri = Url::from_file_path(file.canonicalize()?).unwrap();
     let mut db = db::Database::default();
-    db.open_document(uri.clone(), slurp::read_all_to_string(opt.file)?)?;
+    db.open_document(uri.clone(), slurp::read_all_to_string(file)?)?;
 
     let ast = db.ast(uri.clone()).unwrap();
     println!("AST:");
@@ -79,4 +86,18 @@ fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+fn main() -> anyhow::Result<()> {
+    // handle shebangs
+    if let Some((file, args)) = env::args().skip(1).collect::<Vec<_>>().split_first() {
+        // prevent collision with possible future subcommands
+        if file.contains("/") {
+            return run(PathBuf::from(file), args);
+        }
+    }
+    match Opt::from_args() {
+        Opt::Lsp => Ok(quench::lsp::main()),
+        Opt::Run { file, args } => run(file, &args),
+    }
 }

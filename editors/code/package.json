@@ -44,7 +44,7 @@
             "string"
           ],
           "default": null,
-          "description": "Path to quench-lsp executable."
+          "description": "Path to quench executable."
         },
         "quench.trace.server": {
           "scope": "window",

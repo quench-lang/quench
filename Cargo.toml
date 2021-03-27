@@ -18,11 +18,6 @@ include = [
   "/src",
   "/tree-sitter-quench/src",
 ]
-default-run = "quench"
-
-[[bin]]
-name = "quench-lsp"
-path = "src/bin/quench-lsp.rs"
 
 [dependencies]
 anyhow = "1"

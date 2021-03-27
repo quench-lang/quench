@@ -1,9 +1,9 @@
 mod state {
+    use crate::db::{self, EditError};
     use lspower::lsp::{
         Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
         DidOpenTextDocumentParams, MessageType, SemanticToken,
     };
-    use quench::db::{self, EditError};
     use std::{fmt::Debug, thread};
     use tokio::sync::{mpsc, oneshot};
     use url::Url;
@@ -160,6 +160,7 @@ mod state {
     }
 }
 
+use crate::db;
 use lspower::{
     jsonrpc::{Error, ErrorCode, Result},
     lsp::{
@@ -171,7 +172,6 @@ use lspower::{
     },
     Client, LanguageServer, LspService, Server,
 };
-use quench::db;
 use state::LspMessage;
 use std::sync::Arc;
 use url::Url;
@@ -281,7 +281,7 @@ impl LanguageServer for Backend {
 }
 
 #[tokio::main]
-async fn main() {
+pub async fn main() {
     let state = state::State::new();
     let (service, messages) = LspService::new(|client| Backend {
         client,
