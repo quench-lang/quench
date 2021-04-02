@@ -51,7 +51,8 @@ jobs:
       - name: Publish
         run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
       - name: Ensure empty Git status
-        run: "$GITHUB_WORKSPACE/report_git_status.sh"
+        run: |
+          "$GITHUB_WORKSPACE/report_git_status.sh"
 
   vscode-marketplace:
     runs-on: ubuntu-20.04
@@ -72,4 +73,5 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
       - name: Ensure empty Git status
-        run: "$GITHUB_WORKSPACE/report_git_status.sh"
+        run: |
+          "$GITHUB_WORKSPACE/report_git_status.sh"
