@@ -21,7 +21,8 @@ jobs:
       - name: Install Astring
         run: npm install
       - name: Ensure empty Git status
-        run: "$GITHUB_WORKSPACE/report_git_status.sh"
+        run: |
+          "$GITHUB_WORKSPACE/report_git_status.sh"
 
   tree-sitter:
     runs-on: ubuntu-20.04
@@ -42,7 +43,8 @@ jobs:
       - name: Test parser
         run: npx tree-sitter test
       - name: Ensure empty Git status
-        run: "$GITHUB_WORKSPACE/report_git_status.sh"
+        run: |
+          "$GITHUB_WORKSPACE/report_git_status.sh"
 
   package:
     runs-on: ubuntu-20.04
@@ -59,7 +61,8 @@ jobs:
       - name: Package
         run: cargo package
       - name: Ensure empty Git status
-        run: "$GITHUB_WORKSPACE/report_git_status.sh"
+        run: |
+          "$GITHUB_WORKSPACE/report_git_status.sh"
 
   rust:
     strategy:
@@ -93,7 +96,8 @@ jobs:
           name: quench
           path: '~/.cargo/bin/quench'
       - name: Ensure empty Git status
-        run: "$GITHUB_WORKSPACE/report_git_status.sh"
+        run: |
+          "$GITHUB_WORKSPACE/report_git_status.sh"
 
   vscode:
     needs: rust
@@ -127,4 +131,5 @@ jobs:
       - name: Run tests
         run: xvfb-run -a npm test
       - name: Ensure empty Git status
-        run: "$GITHUB_WORKSPACE/report_git_status.sh"
+        run: |
+          "$GITHUB_WORKSPACE/report_git_status.sh"
