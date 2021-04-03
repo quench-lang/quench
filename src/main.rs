@@ -1,8 +1,10 @@
-use lspower::lsp;
-use quench::{
-    codegen::Codegen,
-    db::{self, QueryGroup},
-};
+mod codegen;
+mod db;
+mod lsp;
+mod parser;
+mod text;
+
+use crate::{codegen::Codegen, db::QueryGroup};
 use std::{env, path::PathBuf};
 use structopt::StructOpt;
 use url::Url;
@@ -62,9 +64,9 @@ fn run(file: PathBuf, _args: &[String]) -> anyhow::Result<()> {
             None => Err(anyhow::anyhow!("Failed to compile.")),
         }
     } else {
-        for lsp::Diagnostic {
+        for lspower::lsp::Diagnostic {
             severity,
-            range: lsp::Range { start, end },
+            range: lspower::lsp::Range { start, end },
             message,
             ..
         } in diagnostics
@@ -95,7 +97,7 @@ fn main() -> anyhow::Result<()> {
         }
     }
     match Opt::from_args() {
-        Opt::Lsp => Ok(quench::lsp::main()),
+        Opt::Lsp => Ok(lsp::main()),
         Opt::Run { file, args } => run(file, &args),
     }
 }
