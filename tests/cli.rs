@@ -38,24 +38,25 @@ where
         .unwrap()
 }
 
-fn to_nonempty_string(bytes: Vec<u8>) -> Option<String> {
-    if bytes.is_empty() {
-        None
-    } else {
-        Some(str::from_utf8(&bytes).unwrap().to_string())
-    }
-}
-
 #[derive(Debug, serde::Deserialize, PartialEq)]
-struct Example {
-    args: Option<Vec<String>>,
-    compile: Option<String>,
-    status: Option<i32>,
-    out: Option<String>,
-    err: Option<String>,
+#[serde(untagged)]
+enum Example {
+    Compile {
+        compile: String,
+    },
+    Run {
+        #[serde(default)]
+        args: Vec<String>,
+        #[serde(default)]
+        status: i32,
+        #[serde(default)]
+        out: String,
+        #[serde(default)]
+        err: String,
+    },
 }
 
-fn try_example(stem: String, path: PathBuf, args: Option<Vec<String>>) -> (String, Example) {
+fn try_example(stem: String, path: PathBuf, args: Vec<String>) -> (String, Example) {
     let example = {
         let Output {
             status,
@@ -78,32 +79,19 @@ fn try_example(stem: String, path: PathBuf, args: Option<Vec<String>>) -> (Strin
                 stderr,
             } = subcmd("run", {
                 let mut full_args = vec![path.to_str().unwrap().to_string()];
-                full_args.extend_from_slice(args.as_ref().unwrap_or(&vec![]));
+                full_args.extend_from_slice(&args);
                 full_args
             });
-            Example {
+            Example::Run {
                 args,
-                compile: None,
-                // we don't just use status.code() here, because we assume there was an exit code
-                status: {
-                    let code = status.code().unwrap();
-                    if code == 0 {
-                        None
-                    } else {
-                        Some(code)
-                    }
-                },
-                out: to_nonempty_string(stdout),
-                err: to_nonempty_string(stderr),
+                status: status.code().unwrap(),
+                out: str::from_utf8(&stdout).unwrap().to_string(),
+                err: str::from_utf8(&stderr).unwrap().to_string(),
             }
         } else {
             assert!(stdout.is_empty());
-            Example {
-                args,
-                compile: to_nonempty_string(stderr),
-                status: None,
-                out: None,
-                err: None,
+            Example::Compile {
+                compile: str::from_utf8(&stderr).unwrap().to_string(),
             }
         }
     };
@@ -111,8 +99,8 @@ fn try_example(stem: String, path: PathBuf, args: Option<Vec<String>>) -> (Strin
     (stem, example)
 }
 
-fn write_literal(writer: &mut impl Write, key: &str, value: &Option<String>) -> io::Result<()> {
-    if let Some(string) = value {
+fn write_literal(writer: &mut impl Write, key: &str, string: &str) -> io::Result<()> {
+    if !string.is_empty() {
         write!(writer, "  {}: |\n", key)?;
         for line in string.lines() {
             write!(writer, "    {}\n", line)?;
@@ -123,26 +111,28 @@ fn write_literal(writer: &mut impl Write, key: &str, value: &Option<String>) -> 
 
 fn write_example(writer: &mut impl Write, name: &str, example: &Example) -> io::Result<()> {
     write!(writer, "{}:\n", name)?;
-    let Example {
-        args,
-        compile,
-        status,
-        out,
-        err,
-    } = example;
-    if let Some(args) = args {
-        write!(writer, "  args:\n")?;
-        for arg in args {
-            // this will probably eventually have to be made more robust
-            write!(writer, "    - {}\n", arg)?;
+    match example {
+        Example::Compile { compile } => write_literal(writer, "compile", compile)?,
+        Example::Run {
+            args,
+            status,
+            out,
+            err,
+        } => {
+            if !args.is_empty() {
+                write!(writer, "  args:\n")?;
+                for arg in args {
+                    // this will probably eventually have to be made more robust
+                    write!(writer, "    - {}\n", arg)?;
+                }
+            }
+            if *status != 0 {
+                write!(writer, "  status: {}\n", status)?;
+            }
+            write_literal(writer, "out", out)?;
+            write_literal(writer, "err", err)?;
         }
     }
-    write_literal(writer, "compile", compile)?;
-    if let Some(code) = status {
-        write!(writer, "  status: {}\n", code)?;
-    }
-    write_literal(writer, "out", out)?;
-    write_literal(writer, "err", err)?;
     Ok(())
 }
 
@@ -176,9 +166,10 @@ fn test_examples() {
             let path = entry.unwrap().path();
             if path.extension() == Some(OsStr::new("qn")) {
                 let stem = path.file_stem().unwrap().to_str().unwrap().to_string();
-                let args = actual
-                    .get(&stem)
-                    .map_or(None, |example| example.args.clone());
+                let args = match actual.get(&stem) {
+                    Some(Example::Run { args, .. }) => args.clone(),
+                    _ => vec![],
+                };
                 Some(try_example(stem, path, args))
             } else {
                 None
