@@ -1,3 +1,10 @@
+args:
+  args:
+    - foo
+    - bar
+  out: |
+    [ "foo", "bar" ]
+
 complicated:
   out: |
     foo
