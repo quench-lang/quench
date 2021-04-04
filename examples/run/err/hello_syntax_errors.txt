@@ -1,0 +1,3 @@
+0:6 to 0:14 Error: syntax (ERROR (string))
+0:24 to 0:24 Error: syntax (MISSING ";")
+Error: Failed to parse.
