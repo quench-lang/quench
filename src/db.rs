@@ -425,6 +425,17 @@ fn compile_helper(text: &str, node: &Node) -> Option<serde_json::Value> {
                     "name": "log",
                 },
             })),
+            "args" => Some(json!({
+                "type": "MemberExpression",
+                "object": {
+                    "type": "Identifier",
+                    "name": "Deno",
+                },
+                "property": {
+                    "type": "Identifier",
+                    "name": "args",
+                },
+            })),
             _ => None,
         },
         "string" => {

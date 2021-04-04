@@ -85,12 +85,12 @@ fn compile(file: PathBuf) -> anyhow::Result<String> {
 
 const DENO_VERSION: &str = "1.8.3";
 
-fn run(file: PathBuf, _args: &[String]) -> anyhow::Result<()> {
+fn run(file: PathBuf, args: Vec<String>) -> anyhow::Result<()> {
     let js = compile(file)?;
 
     let options = deno_runtime::worker::WorkerOptions {
         apply_source_maps: false,
-        args: vec![], // TODO
+        args,
         debug_flag: false,
         unstable: false,
         ca_data: None,
@@ -128,7 +128,7 @@ fn main() -> anyhow::Result<()> {
     if let Some((file, args)) = env::args().skip(1).collect::<Vec<_>>().split_first() {
         // prevent collision with possible future subcommands
         if file.contains("/") {
-            return run(PathBuf::from(file), args);
+            return run(PathBuf::from(file), args.to_vec());
         }
     }
     match Opt::from_args() {
@@ -137,7 +137,7 @@ fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Opt::Lsp => Ok(lsp::main()),
-        Opt::Run { file, args } => run(file, &args),
+        Opt::Run { file, args } => run(file, args),
     }
 }
 
