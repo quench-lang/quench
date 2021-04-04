@@ -1,5 +1,0 @@
-foo
-bar
-undefined
-👻 ba # not a comment
-z 🙃

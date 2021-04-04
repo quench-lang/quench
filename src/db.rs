@@ -563,8 +563,7 @@ mod tests {
 
     #[test]
     fn test_diagnostics_hello_world() {
-        let (db, uri) =
-            foo_db(slurp::read_all_to_string("examples/hello_syntax_errors.qn").unwrap());
+        let (db, uri) = foo_db(slurp::read_all_to_string("examples/errors.qn").unwrap());
         let diagnostics = db.diagnostics(uri);
         assert_eq!(
             diagnostics,

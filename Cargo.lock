@@ -720,6 +720,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 
 [[package]]
+name = "dtoa"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2155,8 +2161,10 @@ dependencies = [
  "regex",
  "rusty_v8",
  "salsa",
+ "serde",
  "serde_json",
  "serde_v8",
+ "serde_yaml",
  "slurp",
  "structopt",
  "strum",
@@ -2167,7 +2175,6 @@ dependencies = [
  "tree-sitter",
  "url",
  "vergen",
- "yaml-rust",
 ]
 
 [[package]]
@@ -2598,6 +2605,18 @@ checksum = "e03e906bb83a749fae4c4b74253277020bd86a09862f24e42ed65be39615d947"
 dependencies = [
  "rusty_v8",
  "serde",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.8.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15654ed4ab61726bf918a39cb8d98a2e2995b002387807fa6ba58fdf7f59bb23"
+dependencies = [
+ "dtoa",
+ "linked-hash-map",
+ "serde",
+ "yaml-rust",
 ]
 
 [[package]]

@@ -1,7 +1,6 @@
 use comrak::ComrakOptions;
 use regex::Regex;
 use std::{collections::HashSet, path::PathBuf, str};
-use yaml_rust::{Yaml, YamlLoader};
 
 #[test]
 fn test_version() {
@@ -76,36 +75,26 @@ fn test_minimum_rustc() {
 
     let ci_versions: HashSet<String> = {
         let re = Regex::new(r"^(\d+\.\d+)\.\d+$").unwrap();
-        YamlLoader::load_from_str(&slurp::read_all_to_string(".github/workflows/ci.yml").unwrap())
-            .unwrap()
-            .get(0)
-            .unwrap()
-            .as_hash()
-            .unwrap()
-            .get(&Yaml::String(String::from("jobs")))
-            .unwrap()
-            .as_hash()
-            .unwrap()
-            .get(&Yaml::String(String::from("rust")))
-            .unwrap()
-            .as_hash()
-            .unwrap()
-            .get(&Yaml::String(String::from("strategy")))
-            .unwrap()
-            .as_hash()
-            .unwrap()
-            .get(&Yaml::String(String::from("matrix")))
-            .unwrap()
-            .as_hash()
-            .unwrap()
-            .get(&Yaml::String(String::from("rust")))
-            .unwrap()
-            .as_vec()
-            .unwrap()
-            .iter()
-            .filter_map(|version| re.captures(version.as_str().unwrap()))
-            .map(|m| String::from(&m[1]))
-            .collect()
+        serde_yaml::from_str::<serde_yaml::Value>(
+            &slurp::read_all_to_string(".github/workflows/ci.yml").unwrap(),
+        )
+        .unwrap()
+        .get("jobs")
+        .unwrap()
+        .get("rust")
+        .unwrap()
+        .get("strategy")
+        .unwrap()
+        .get("matrix")
+        .unwrap()
+        .get("rust")
+        .unwrap()
+        .as_sequence()
+        .unwrap()
+        .iter()
+        .filter_map(|version| re.captures(version.as_str().unwrap()))
+        .map(|m| String::from(&m[1]))
+        .collect()
     };
     assert!(
         readme_versions.is_subset(&ci_versions),
