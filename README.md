@@ -65,10 +65,6 @@ Then run the example directly:
 examples/hello.qn
 ```
 
-Currently, running a valid Quench program produces an equivalent JavaScript
-program on stdout. If you happen to have [Node][] or [Deno][] installed, you can
-pipe a Quench program to either one to actually evaluate it.
-
 ### Other
 
 If you want to modify the grammar, be sure to follow the instructions in the
@@ -86,11 +82,9 @@ from me and not my employer (Facebook)._
 [ci link]: https://github.com/quench-lang/quench/actions/workflows/ci.yml
 [crates.io]: https://img.shields.io/crates/v/quench
 [crates.io link]: https://crates.io/crates/quench
-[deno]: https://deno.land/
 [docs.rs]: https://docs.rs/quench/badge.svg
 [docs.rs link]: https://docs.rs/quench
 [editors]: /editors
-[node]: https://nodejs.org/en/
 [quench-windows.exe]: https://github.com/quench-lang/quench/releases/latest/download/quench-windows.exe
 [tree-sitter-quench]: /tree-sitter-quench
 [rust]: https://www.rust-lang.org/tools/install
