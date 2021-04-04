@@ -16,9 +16,7 @@ Or on a Unix-like system, you could instead run these two commands:
 
 Either way, you should see this output:
 
-    console.log("Hello, world!");
-
-As you can see, Quench compiled your program into JavaScript.
+    Hello, world!
 
 USAGE:
     quench <SUBCOMMAND>
@@ -28,6 +26,7 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    help    Prints this message or the help of the given subcommand(s)
-    lsp     Starts the language server
-    run     Runs a script
+    compile    Compiles a file to JavaScript
+    help       Prints this message or the help of the given subcommand(s)
+    lsp        Starts the language server
+    run        Runs a script

@@ -91,7 +91,7 @@ jobs:
         run: cargo install --locked --path .
       # partially covered by tests/cli.rs, but this checks the shebang
       - name: Check output of hello example
-        run: examples/hello.qn | git diff --no-index examples/hello.out.txt -
+        run: examples/hello.qn | git diff --no-index examples/run/out/hello.txt -
       - name: Upload quench for next job
         uses: actions/upload-artifact@v2
         with:
