@@ -9,7 +9,6 @@ license = "MIT"
 categories = [
   "command-line-utilities",
   "compilers",
-  "development-tools",
 ]
 include = [
   "/astring-quench/node_modules/astring/LICENSE",
