@@ -1,4 +1,5 @@
-use crate::{parser, text};
+use crate::{estree, parser, text};
+use either::Either;
 use lspower::lsp::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, Position, Range, SemanticToken, SemanticTokenType,
@@ -60,7 +61,7 @@ pub trait QueryGroup: salsa::Database {
 
     fn semantic_tokens(&self, key: Url) -> im::Vector<SemanticToken>;
 
-    fn compile(&self, key: Url) -> Option<serde_json::Value>;
+    fn compile(&self, key: Url) -> Option<estree::Program>;
 }
 
 fn source_index(db: &dyn QueryGroup, key: Url) -> Option<text::Index> {
@@ -376,66 +377,35 @@ impl Processable<im::Vector<SemanticToken>> for TokensRequest {
     }
 }
 
-fn compile_helper(text: &str, node: &Node) -> Option<serde_json::Value> {
-    use serde_json::{json, Value};
+fn compile_expression(text: &str, node: &Node) -> Option<estree::Expression> {
     match node.kind() {
-        "source_file" => {
-            let mut cursor = node.walk();
-            let body: Vec<Value> = node
-                .children(&mut cursor)
-                .filter_map(|child| compile_helper(text, &child))
-                .map(|expr| {
-                    json!({
-                        "type": "ExpressionStatement",
-                        "expression": expr,
-                    })
-                })
-                .collect();
-            Some(json!({
-                "type": "Program",
-                "body": body,
-            }))
-        }
         "call" => {
-            let func = compile_helper(text, &node.child_by_field_name("function")?)?;
-            let args = compile_helper(text, &node.child_by_field_name("arguments")?)?;
-            Some(json!({
-                "type": "CallExpression",
-                "callee": func,
-                "arguments": args,
-            }))
-        }
-        "arguments" => {
-            let mut cursor = node.walk();
-            Some(Value::Array(
-                node.children(&mut cursor)
-                    .filter_map(|child| compile_helper(text, &child))
-                    .collect(),
-            ))
+            let callee = Box::new(compile_expression(
+                text,
+                &node.child_by_field_name("function")?,
+            )?);
+            let arguments = compile_arguments(text, &node.child_by_field_name("arguments")?)?;
+            Some(estree::Expression::Call { callee, arguments })
         }
         "identifier" => match node.utf8_text(text.as_bytes()).ok()? {
-            "print" => Some(json!({
-                "type": "MemberExpression",
-                "object": {
-                    "type": "Identifier",
-                    "name": "console",
-                },
-                "property": {
-                    "type": "Identifier",
-                    "name": "log",
-                },
-            })),
-            "args" => Some(json!({
-                "type": "MemberExpression",
-                "object": {
-                    "type": "Identifier",
-                    "name": "Deno",
-                },
-                "property": {
-                    "type": "Identifier",
-                    "name": "args",
-                },
-            })),
+            "print" => Some(estree::Expression::Member {
+                object: Box::new(estree::Expression::Identifier {
+                    name: String::from("console"),
+                }),
+                property: Box::new(estree::Expression::Identifier {
+                    name: String::from("log"),
+                }),
+                computed: false,
+            }),
+            "args" => Some(estree::Expression::Member {
+                object: Box::new(estree::Expression::Identifier {
+                    name: String::from("Deno"),
+                }),
+                property: Box::new(estree::Expression::Identifier {
+                    name: String::from("args"),
+                }),
+                computed: false,
+            }),
             _ => None,
         },
         "string" => {
@@ -444,19 +414,51 @@ fn compile_helper(text: &str, node: &Node) -> Option<serde_json::Value> {
                 .ok()?
                 .strip_prefix("\"")?
                 .strip_suffix("\"")?;
-            Some(json!({
-                "type": "Literal",
-                "value": value,
-            }))
+            Some(estree::Expression::Literal {
+                value: estree::Value::String(String::from(value)),
+            })
         }
         _ => None,
     }
 }
 
-pub fn compile(db: &dyn QueryGroup, key: Url) -> Option<serde_json::Value> {
+fn compile_arguments(text: &str, node: &Node) -> Option<Vec<estree::Expression>> {
+    match node.kind() {
+        "arguments" => {
+            let mut cursor = node.walk();
+            Some(
+                node.children(&mut cursor)
+                    .filter_map(|child| compile_expression(text, &child))
+                    .collect(),
+            )
+        }
+        _ => None,
+    }
+}
+
+fn compile_program(text: &str, node: &Node) -> Option<estree::Program> {
+    match node.kind() {
+        "source_file" => {
+            let mut cursor = node.walk();
+            let body: Vec<Either<estree::Directive, estree::Statement>> = node
+                .children(&mut cursor)
+                .filter_map(|child| compile_expression(text, &child))
+                .map(|expr| {
+                    Either::Right(estree::Statement::Expression {
+                        expression: Box::new(expr),
+                    })
+                })
+                .collect();
+            Some(estree::Program { body })
+        }
+        _ => None,
+    }
+}
+
+pub fn compile(db: &dyn QueryGroup, key: Url) -> Option<estree::Program> {
     let tree = db.ast(key.clone())?;
     let source = db.source_text(key); // at this point we already know the key is valid
-    compile_helper(&source, &tree.0.root_node())
+    compile_program(&source, &tree.0.root_node())
 }
 
 #[cfg(test)]
@@ -636,8 +638,8 @@ mod tests {
         let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
         let compiled = db.compile(uri);
         assert_eq!(
-            compiled,
-            Some(serde_json::json!({
+            serde_json::to_value(compiled).unwrap(),
+            serde_json::json!({
                 "type": "Program",
                 "body": [
                     {
@@ -654,6 +656,7 @@ mod tests {
                                     "type": "Identifier",
                                     "name": "log",
                                 },
+                                "computed": false,
                             },
                             "arguments": [
                                 {
@@ -664,7 +667,7 @@ mod tests {
                         },
                     },
                 ],
-            })),
+            }),
         );
     }
 }

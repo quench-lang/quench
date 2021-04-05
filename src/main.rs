@@ -1,5 +1,7 @@
 mod codegen;
 mod db;
+#[allow(dead_code)]
+mod estree;
 mod lsp;
 mod parser;
 mod text;

@@ -1,3 +1,5 @@
+use crate::estree;
+
 pub struct Codegen {
     js_runtime: deno_core::JsRuntime,
 }
@@ -18,7 +20,7 @@ impl Codegen {
         Codegen { js_runtime }
     }
 
-    pub fn gen(&mut self, ast: serde_json::Value) -> Option<String> {
+    pub fn gen(&mut self, ast: estree::Program) -> Option<String> {
         let context = self.js_runtime.global_context();
         let scope = &mut rusty_v8::HandleScope::with_context(self.js_runtime.v8_isolate(), context);
         let context = scope.get_current_context();
@@ -48,37 +50,28 @@ impl Codegen {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use either::Either;
 
     #[test]
     fn test_hello_world() {
-        let ast = serde_json::json!({
-            "type": "Program",
-            "body": [
-                {
-                    "type": "ExpressionStatement",
-                    "expression": {
-                        "type": "CallExpression",
-                        "callee": {
-                            "type": "MemberExpression",
-                            "object": {
-                                "type": "Identifier",
-                                "name": "console",
-                            },
-                            "property": {
-                                "type": "Identifier",
-                                "name": "log",
-                            },
-                        },
-                        "arguments": [
-                            {
-                                "type": "Literal",
-                                "value": "Hello, world!",
-                            },
-                        ],
-                    },
-                },
-            ],
-        });
+        let ast = estree::Program {
+            body: vec![Either::Right(estree::Statement::Expression {
+                expression: Box::new(estree::Expression::Call {
+                    callee: Box::new(estree::Expression::Member {
+                        object: Box::new(estree::Expression::Identifier {
+                            name: String::from("console"),
+                        }),
+                        property: Box::new(estree::Expression::Identifier {
+                            name: String::from("log"),
+                        }),
+                        computed: false,
+                    }),
+                    arguments: vec![estree::Expression::Literal {
+                        value: estree::Value::String(String::from("Hello, world!")),
+                    }],
+                }),
+            })],
+        };
         let mut codegen = Codegen::new();
         let code = codegen.gen(ast).unwrap();
         assert_eq!(code, "console.log(\"Hello, world!\");\n");
