@@ -1,4 +1,4 @@
-use crate::{estree, parser, text};
+use crate::{estree, parser, syntax, text};
 use either::Either;
 use lspower::lsp::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
@@ -12,9 +12,9 @@ use tree_sitter::{Node, Point, Tree};
 use url::Url;
 
 #[derive(Debug)]
-pub struct Ast(pub Tree);
+pub struct Cst(pub Tree);
 
-impl PartialEq for Ast {
+impl PartialEq for Cst {
     fn eq(&self, other: &Self) -> bool {
         // only used by Tree-sitter after an update to try to save work if the result didn't "really
         // change", so we just do the bare minimum to make this an equivalence relation (by
@@ -23,7 +23,7 @@ impl PartialEq for Ast {
     }
 }
 
-impl Eq for Ast {}
+impl Eq for Cst {}
 
 #[derive(Clone, Copy, EnumIter)]
 enum TokenType {
@@ -55,13 +55,15 @@ pub trait QueryGroup: salsa::Database {
 
     fn source_index(&self, key: Url) -> Option<text::Index>;
 
-    fn ast(&self, key: Url) -> Option<Rc<Ast>>;
+    fn cst(&self, key: Url) -> Option<Rc<Cst>>;
 
     fn diagnostics(&self, key: Url) -> im::Vector<Diagnostic>;
 
     fn semantic_tokens(&self, key: Url) -> im::Vector<SemanticToken>;
 
-    fn compile(&self, key: Url) -> Option<estree::Program>;
+    fn ast(&self, key: Url) -> Option<Rc<syntax::File>>;
+
+    fn compile(&self, key: Url) -> Option<Rc<estree::Program>>;
 }
 
 fn source_index(db: &dyn QueryGroup, key: Url) -> Option<text::Index> {
@@ -72,13 +74,13 @@ fn source_index(db: &dyn QueryGroup, key: Url) -> Option<text::Index> {
     }
 }
 
-fn ast(db: &dyn QueryGroup, key: Url) -> Option<Rc<Ast>> {
+fn cst(db: &dyn QueryGroup, key: Url) -> Option<Rc<Cst>> {
     if db.opened_files().contains(&key) {
         let mut parser = parser::parser();
         let text: &str = &db.source_text(key);
         // parser::parser guarantees language is set, and we haven't set timeout or cancellation
         let tree = parser.parse(text, None).unwrap();
-        Some(Rc::new(Ast(tree)))
+        Some(Rc::new(Cst(tree)))
     } else {
         None
     }
@@ -241,7 +243,7 @@ fn diagnostics_helper(node: &Node, index: &text::Index) -> im::Vector<Diagnostic
 }
 
 fn diagnostics(db: &dyn QueryGroup, key: Url) -> im::Vector<Diagnostic> {
-    match (db.source_index(key.clone()), db.ast(key)) {
+    match (db.source_index(key.clone()), db.cst(key)) {
         (Some(index), Some(tree)) => diagnostics_helper(&tree.0.root_node(), &index),
         _ => im::vector![],
     }
@@ -362,7 +364,7 @@ fn make_relative(tokens: im::Vector<AbsoluteToken>) -> im::Vector<SemanticToken>
 }
 
 fn semantic_tokens(db: &dyn QueryGroup, key: Url) -> im::Vector<SemanticToken> {
-    match (db.source_index(key.clone()), db.ast(key)) {
+    match (db.source_index(key.clone()), db.cst(key)) {
         (Some(index), Some(tree)) => make_relative(absolute_tokens(&tree.0.root_node(), &index)),
         _ => im::vector![],
     }
@@ -377,88 +379,77 @@ impl Processable<im::Vector<SemanticToken>> for TokensRequest {
     }
 }
 
-fn compile_expression(text: &str, node: &Node) -> Option<estree::Expression> {
-    match node.kind() {
-        "call" => {
-            let callee = Box::new(compile_expression(
-                text,
-                &node.child_by_field_name("function")?,
-            )?);
-            let arguments = compile_arguments(text, &node.child_by_field_name("arguments")?)?;
-            Some(estree::Expression::Call { callee, arguments })
-        }
-        "identifier" => match node.utf8_text(text.as_bytes()).ok()? {
-            "print" => Some(estree::Expression::Member {
-                object: Box::new(estree::Expression::Identifier {
-                    name: String::from("console"),
-                }),
-                property: Box::new(estree::Expression::Identifier {
-                    name: String::from("log"),
-                }),
-                computed: false,
+fn ast(db: &dyn QueryGroup, key: Url) -> Option<Rc<syntax::File>> {
+    let tree = db.cst(key.clone())?;
+    let source = db.source_text(key); // at this point we already know the key is valid
+    syntax::Node::make(&source, &tree.0.root_node()).map(Rc::new)
+}
+
+fn compile_identifier(id: &syntax::Identifier) -> Option<estree::Expression> {
+    match id.name.as_str() {
+        "print" => Some(estree::Expression::Member {
+            object: Box::new(estree::Expression::Identifier {
+                name: String::from("console"),
             }),
-            "args" => Some(estree::Expression::Member {
-                object: Box::new(estree::Expression::Identifier {
-                    name: String::from("Deno"),
-                }),
-                property: Box::new(estree::Expression::Identifier {
-                    name: String::from("args"),
-                }),
-                computed: false,
+            property: Box::new(estree::Expression::Identifier {
+                name: String::from("log"),
             }),
-            _ => None,
-        },
-        "string" => {
-            let value = node
-                .utf8_text(text.as_bytes())
-                .ok()?
-                .strip_prefix("\"")?
-                .strip_suffix("\"")?;
-            Some(estree::Expression::Literal {
-                value: estree::Value::String(String::from(value)),
+            computed: false,
+        }),
+        "args" => Some(estree::Expression::Member {
+            object: Box::new(estree::Expression::Identifier {
+                name: String::from("Deno"),
+            }),
+            property: Box::new(estree::Expression::Identifier {
+                name: String::from("args"),
+            }),
+            computed: false,
+        }),
+        _ => None,
+    }
+}
+
+fn compile_expression(expr: &syntax::Expression) -> Option<estree::Expression> {
+    match expr {
+        syntax::Expression::Call(syntax::Call {
+            function,
+            arguments,
+        }) => Some(estree::Expression::Call {
+            callee: Box::new(compile_identifier(function)?),
+            arguments: arguments.iter().filter_map(compile_expression).collect(),
+        }),
+        syntax::Expression::Id(id) => compile_identifier(id),
+        syntax::Expression::Lit(syntax::Literal::Str(value)) => Some(estree::Expression::Literal {
+            value: estree::Value::String(value.clone()),
+        }),
+    }
+}
+
+fn compile_statement(stmt: &syntax::Statement) -> Option<estree::Statement> {
+    match stmt {
+        syntax::Statement::Expr(expr) => {
+            let compiled = compile_expression(expr)?;
+            Some(estree::Statement::Expression {
+                expression: Box::new(compiled),
             })
         }
-        _ => None,
     }
 }
 
-fn compile_arguments(text: &str, node: &Node) -> Option<Vec<estree::Expression>> {
-    match node.kind() {
-        "arguments" => {
-            let mut cursor = node.walk();
-            Some(
-                node.children(&mut cursor)
-                    .filter_map(|child| compile_expression(text, &child))
-                    .collect(),
-            )
-        }
-        _ => None,
-    }
+fn compile_file(file: &syntax::File) -> Option<estree::Program> {
+    Some(estree::Program {
+        body: file
+            .body
+            .iter()
+            .filter_map(compile_statement)
+            .map(Either::Right)
+            .collect(),
+    })
 }
 
-fn compile_program(text: &str, node: &Node) -> Option<estree::Program> {
-    match node.kind() {
-        "source_file" => {
-            let mut cursor = node.walk();
-            let body: Vec<Either<estree::Directive, estree::Statement>> = node
-                .children(&mut cursor)
-                .filter_map(|child| compile_expression(text, &child))
-                .map(|expr| {
-                    Either::Right(estree::Statement::Expression {
-                        expression: Box::new(expr),
-                    })
-                })
-                .collect();
-            Some(estree::Program { body })
-        }
-        _ => None,
-    }
-}
-
-pub fn compile(db: &dyn QueryGroup, key: Url) -> Option<estree::Program> {
+pub fn compile(db: &dyn QueryGroup, key: Url) -> Option<Rc<estree::Program>> {
     let tree = db.ast(key.clone())?;
-    let source = db.source_text(key); // at this point we already know the key is valid
-    compile_program(&source, &tree.0.root_node())
+    compile_file(&tree).map(Rc::new)
 }
 
 #[cfg(test)]
@@ -634,11 +625,32 @@ mod tests {
     }
 
     #[test]
+    fn test_ast_hello_world() {
+        let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
+        let tree = db.ast(uri).unwrap();
+        assert_eq!(
+            tree.as_ref(),
+            &syntax::File {
+                body: vec![syntax::Statement::Expr(syntax::Expression::Call(
+                    syntax::Call {
+                        function: syntax::Identifier {
+                            name: String::from("print")
+                        },
+                        arguments: vec![syntax::Expression::Lit(syntax::Literal::Str(
+                            String::from("Hello, world!")
+                        ))],
+                    }
+                ))]
+            }
+        );
+    }
+
+    #[test]
     fn test_compile_hello_world() {
         let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
-        let compiled = db.compile(uri);
+        let compiled = db.compile(uri).unwrap();
         assert_eq!(
-            serde_json::to_value(compiled).unwrap(),
+            serde_json::to_value(compiled.as_ref()).unwrap(),
             serde_json::json!({
                 "type": "Program",
                 "body": [

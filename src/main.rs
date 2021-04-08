@@ -4,6 +4,7 @@ mod db;
 mod estree;
 mod lsp;
 mod parser;
+mod syntax;
 mod text;
 
 use crate::{codegen::Codegen, db::QueryGroup};
@@ -58,7 +59,7 @@ fn compile(file: PathBuf) -> anyhow::Result<String> {
     let diagnostics = db.diagnostics(uri.clone());
     if diagnostics.is_empty() {
         db.compile(uri)
-            .and_then(|compiled| Codegen::new().gen(compiled))
+            .and_then(|compiled| Codegen::new().gen(compiled.as_ref()))
             .ok_or(anyhow::anyhow!("Failed to compile."))
     } else {
         for lspower::lsp::Diagnostic {
