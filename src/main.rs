@@ -1,4 +1,5 @@
 mod codegen;
+mod compiler;
 mod db;
 #[allow(dead_code)]
 mod estree;
