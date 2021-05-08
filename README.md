@@ -22,7 +22,7 @@ sudo mv quench /usr/local/bin
 
 ### Windows
 
-Save [quench-windows.exe][] as `quench.exe` somewhere on your PATH.
+Windows is currently unsupported.
 
 ## Usage
 
