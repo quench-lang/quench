@@ -1,4 +1,4 @@
-# Quench [![CI][]][ci link] [![crates.io][]][crates.io link] [![docs.rs][]][docs.rs link] [![rustc version][]][rust release]
+# Quench [![CI][]][ci link] [![crates.io][]][crates.io link] [![rustc version][]][rust release]
 
 A programming language.
 
@@ -82,8 +82,6 @@ from me and not my employer (Facebook)._
 [ci link]: https://github.com/quench-lang/quench/actions/workflows/ci.yml
 [crates.io]: https://img.shields.io/crates/v/quench
 [crates.io link]: https://crates.io/crates/quench
-[docs.rs]: https://docs.rs/quench/badge.svg
-[docs.rs link]: https://docs.rs/quench
 [editors]: /editors
 [quench-windows.exe]: https://github.com/quench-lang/quench/releases/latest/download/quench-windows.exe
 [tree-sitter-quench]: /tree-sitter-quench
