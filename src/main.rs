@@ -1,12 +1,15 @@
 mod codegen;
+mod compiler;
 mod db;
+mod diagnosis;
 #[allow(dead_code)]
 mod estree;
 mod lsp;
 mod parser;
+mod syntax;
 mod text;
 
-use crate::{codegen::Codegen, db::QueryGroup};
+use crate::{codegen::Codegen, db::QueryGroup, diagnosis::Diagnostic};
 use std::{env, path::PathBuf, rc::Rc, sync::Arc};
 use structopt::StructOpt;
 use url::Url;
@@ -55,34 +58,31 @@ fn compile(file: PathBuf) -> anyhow::Result<String> {
     let mut db = db::Database::default();
     db.open_document(uri.clone(), slurp::read_all_to_string(file)?)?;
 
-    let diagnostics = db.diagnostics(uri.clone());
-    if diagnostics.is_empty() {
-        db.compile(uri)
-            .and_then(|compiled| Codegen::new().gen(compiled))
-            .ok_or(anyhow::anyhow!("Failed to compile."))
-    } else {
-        for lspower::lsp::Diagnostic {
-            severity,
-            range: lspower::lsp::Range { start, end },
-            message,
-            ..
-        } in diagnostics
-        {
-            let loc = format!(
-                "{}:{} to {}:{}",
-                start.line, start.character, end.line, end.character
-            );
-            match severity {
-                Some(severity) => {
-                    eprintln!("{} {:?}: {}", loc, severity, message);
-                }
-                None => {
-                    eprintln!("{} {}", loc, message);
-                }
+    match db.compile(uri) {
+        Ok(compiled) => {
+            if let Some(code) = Codegen::new().gen(compiled.as_ref()) {
+                return Ok(code);
             }
         }
-        Err(anyhow::anyhow!("Failed to parse."))
+        Err(diagnostics) => {
+            for Diagnostic {
+                range,
+                severity,
+                message,
+            } in diagnostics
+            {
+                let loc = format!(
+                    "{}:{} to {}:{}",
+                    range.start_point.row,
+                    range.start_point.column,
+                    range.end_point.row,
+                    range.end_point.column,
+                );
+                eprintln!("{} {:?}: {}", loc, severity, message);
+            }
+        }
     }
+    Err(anyhow::anyhow!("Failed to compile."))
 }
 
 const DENO_VERSION: &str = "1.8.3";

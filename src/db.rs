@@ -1,20 +1,19 @@
-use crate::{estree, parser, text};
-use either::Either;
+use crate::{compiler, diagnosis::Diagnostic, estree, parser, syntax, text};
 use lspower::lsp::{
-    Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, Position, Range, SemanticToken, SemanticTokenType,
+    DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, Position, SemanticToken, SemanticTokenType,
     TextDocumentContentChangeEvent,
 };
-use std::{fmt::Debug, ptr, rc::Rc};
+use std::{fmt::Debug, ptr, rc::Rc, sync::Arc};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use tree_sitter::{Node, Point, Tree};
 use url::Url;
 
 #[derive(Debug)]
-pub struct Ast(pub Tree);
+pub struct Cst(pub Tree);
 
-impl PartialEq for Ast {
+impl PartialEq for Cst {
     fn eq(&self, other: &Self) -> bool {
         // only used by Tree-sitter after an update to try to save work if the result didn't "really
         // change", so we just do the bare minimum to make this an equivalence relation (by
@@ -23,7 +22,7 @@ impl PartialEq for Ast {
     }
 }
 
-impl Eq for Ast {}
+impl Eq for Cst {}
 
 #[derive(Clone, Copy, EnumIter)]
 enum TokenType {
@@ -55,13 +54,15 @@ pub trait QueryGroup: salsa::Database {
 
     fn source_index(&self, key: Url) -> Option<text::Index>;
 
-    fn ast(&self, key: Url) -> Option<Rc<Ast>>;
+    fn cst(&self, key: Url) -> Option<Rc<Cst>>;
 
-    fn diagnostics(&self, key: Url) -> im::Vector<Diagnostic>;
+    fn cst_diagnostics(&self, key: Url) -> im::Vector<Diagnostic>;
 
     fn semantic_tokens(&self, key: Url) -> im::Vector<SemanticToken>;
 
-    fn compile(&self, key: Url) -> Option<estree::Program>;
+    fn ast(&self, key: Url) -> Result<Rc<syntax::File>, im::Vector<Diagnostic>>;
+
+    fn compile(&self, key: Url) -> Result<Arc<estree::Program>, im::Vector<Diagnostic>>;
 }
 
 fn source_index(db: &dyn QueryGroup, key: Url) -> Option<text::Index> {
@@ -72,13 +73,22 @@ fn source_index(db: &dyn QueryGroup, key: Url) -> Option<text::Index> {
     }
 }
 
-fn ast(db: &dyn QueryGroup, key: Url) -> Option<Rc<Ast>> {
+pub struct IndexRequest(pub Url);
+
+impl Processable<Option<text::Index>> for IndexRequest {
+    fn process(self, db: &mut Database) -> Option<text::Index> {
+        let IndexRequest(uri) = self;
+        db.source_index(uri)
+    }
+}
+
+fn cst(db: &dyn QueryGroup, key: Url) -> Option<Rc<Cst>> {
     if db.opened_files().contains(&key) {
         let mut parser = parser::parser();
         let text: &str = &db.source_text(key);
         // parser::parser guarantees language is set, and we haven't set timeout or cancellation
         let tree = parser.parse(text, None).unwrap();
-        Some(Rc::new(Ast(tree)))
+        Some(Rc::new(Cst(tree)))
     } else {
         None
     }
@@ -214,22 +224,13 @@ impl Processable<Result<(), NotYetOpenedError>> for DidCloseTextDocumentParams {
     }
 }
 
-fn make_diagnostic(range: Range, message: String, severity: DiagnosticSeverity) -> Diagnostic {
-    let mut diag = Diagnostic::new_simple(range, message);
-    diag.severity = Some(severity);
-    diag
-}
-
 fn diagnostics_helper(node: &Node, index: &text::Index) -> im::Vector<Diagnostic> {
     if node.is_error() || node.is_missing() {
-        im::vector![make_diagnostic(
-            Range::new(
-                index.to_lsp(node.start_position()),
-                index.to_lsp(node.end_position()),
-            ),
-            format!("syntax {}", node.to_sexp()),
-            DiagnosticSeverity::Error,
-        )]
+        im::vector![Diagnostic {
+            range: node.range(),
+            severity: DiagnosticSeverity::Error,
+            message: format!("syntax {}", node.to_sexp()),
+        }]
     } else {
         let mut diagnostics = im::vector![];
         let mut cursor = node.walk();
@@ -240,19 +241,10 @@ fn diagnostics_helper(node: &Node, index: &text::Index) -> im::Vector<Diagnostic
     }
 }
 
-fn diagnostics(db: &dyn QueryGroup, key: Url) -> im::Vector<Diagnostic> {
-    match (db.source_index(key.clone()), db.ast(key)) {
+fn cst_diagnostics(db: &dyn QueryGroup, key: Url) -> im::Vector<Diagnostic> {
+    match (db.source_index(key.clone()), db.cst(key)) {
         (Some(index), Some(tree)) => diagnostics_helper(&tree.0.root_node(), &index),
         _ => im::vector![],
-    }
-}
-
-pub struct DiagnosticsRequest(pub Url);
-
-impl Processable<im::Vector<Diagnostic>> for DiagnosticsRequest {
-    fn process(self, db: &mut Database) -> im::Vector<Diagnostic> {
-        let DiagnosticsRequest(uri) = self;
-        db.diagnostics(uri)
     }
 }
 
@@ -362,7 +354,7 @@ fn make_relative(tokens: im::Vector<AbsoluteToken>) -> im::Vector<SemanticToken>
 }
 
 fn semantic_tokens(db: &dyn QueryGroup, key: Url) -> im::Vector<SemanticToken> {
-    match (db.source_index(key.clone()), db.ast(key)) {
+    match (db.source_index(key.clone()), db.cst(key)) {
         (Some(index), Some(tree)) => make_relative(absolute_tokens(&tree.0.root_node(), &index)),
         _ => im::vector![],
     }
@@ -377,94 +369,38 @@ impl Processable<im::Vector<SemanticToken>> for TokensRequest {
     }
 }
 
-fn compile_expression(text: &str, node: &Node) -> Option<estree::Expression> {
-    match node.kind() {
-        "call" => {
-            let callee = Box::new(compile_expression(
-                text,
-                &node.child_by_field_name("function")?,
-            )?);
-            let arguments = compile_arguments(text, &node.child_by_field_name("arguments")?)?;
-            Some(estree::Expression::Call { callee, arguments })
-        }
-        "identifier" => match node.utf8_text(text.as_bytes()).ok()? {
-            "print" => Some(estree::Expression::Member {
-                object: Box::new(estree::Expression::Identifier {
-                    name: String::from("console"),
-                }),
-                property: Box::new(estree::Expression::Identifier {
-                    name: String::from("log"),
-                }),
-                computed: false,
-            }),
-            "args" => Some(estree::Expression::Member {
-                object: Box::new(estree::Expression::Identifier {
-                    name: String::from("Deno"),
-                }),
-                property: Box::new(estree::Expression::Identifier {
-                    name: String::from("args"),
-                }),
-                computed: false,
-            }),
-            _ => None,
-        },
-        "string" => {
-            let value = node
-                .utf8_text(text.as_bytes())
-                .ok()?
-                .strip_prefix("\"")?
-                .strip_suffix("\"")?;
-            Some(estree::Expression::Literal {
-                value: estree::Value::String(String::from(value)),
-            })
-        }
-        _ => None,
+fn ast(db: &dyn QueryGroup, key: Url) -> Result<Rc<syntax::File>, im::Vector<Diagnostic>> {
+    let cst_diags = db.cst_diagnostics(key.clone());
+    if !cst_diags.is_empty() {
+        Err(cst_diags)
+    } else {
+        let tree = db.cst(key.clone()).ok_or(im::vector![])?;
+        let source = db.source_text(key); // at this point we already know the key is valid
+        syntax::Node::make(&source, &tree.0.root_node()).map(Rc::new)
     }
 }
 
-fn compile_arguments(text: &str, node: &Node) -> Option<Vec<estree::Expression>> {
-    match node.kind() {
-        "arguments" => {
-            let mut cursor = node.walk();
-            Some(
-                node.children(&mut cursor)
-                    .filter_map(|child| compile_expression(text, &child))
-                    .collect(),
-            )
-        }
-        _ => None,
-    }
-}
-
-fn compile_program(text: &str, node: &Node) -> Option<estree::Program> {
-    match node.kind() {
-        "source_file" => {
-            let mut cursor = node.walk();
-            let body: Vec<Either<estree::Directive, estree::Statement>> = node
-                .children(&mut cursor)
-                .filter_map(|child| compile_expression(text, &child))
-                .map(|expr| {
-                    Either::Right(estree::Statement::Expression {
-                        expression: Box::new(expr),
-                    })
-                })
-                .collect();
-            Some(estree::Program { body })
-        }
-        _ => None,
-    }
-}
-
-pub fn compile(db: &dyn QueryGroup, key: Url) -> Option<estree::Program> {
+pub fn compile(
+    db: &dyn QueryGroup,
+    key: Url,
+) -> Result<Arc<estree::Program>, im::Vector<Diagnostic>> {
     let tree = db.ast(key.clone())?;
-    let source = db.source_text(key); // at this point we already know the key is valid
-    compile_program(&source, &tree.0.root_node())
+    compiler::compile_file(&tree).map(Arc::new)
+}
+
+pub struct CompileRequest(pub Url);
+
+impl Processable<Result<Arc<estree::Program>, im::Vector<Diagnostic>>> for CompileRequest {
+    fn process(self, db: &mut Database) -> Result<Arc<estree::Program>, im::Vector<Diagnostic>> {
+        let CompileRequest(uri) = self;
+        db.compile(uri)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lspower::lsp::VersionedTextDocumentIdentifier;
+    use lspower::lsp::{Range, VersionedTextDocumentIdentifier};
     use pretty_assertions::assert_eq;
 
     fn foo_db(text: String) -> (Database, Url) {
@@ -510,7 +446,7 @@ mod tests {
         assert_eq!(db.opened_files(), im::hashset![]);
     }
 
-    fn make_range(
+    fn lsp_range(
         start_line: u32,
         start_character: u32,
         end_line: u32,
@@ -531,7 +467,7 @@ mod tests {
                 version: 2,
             },
             content_changes: vec![TextDocumentContentChangeEvent {
-                range: Some(make_range(0, 0, 0, 3)),
+                range: Some(lsp_range(0, 0, 0, 3)),
                 range_length: None,
                 text: String::from("bar"),
             }],
@@ -566,23 +502,43 @@ mod tests {
         assert_eq!(new_contents, "bar");
     }
 
-    fn make_error(sl: u32, sc: u32, el: u32, ec: u32, message: &str) -> Diagnostic {
-        make_diagnostic(
-            make_range(sl, sc, el, ec),
-            String::from(message),
-            DiagnosticSeverity::Error,
-        )
+    fn ts_range(
+        sb: usize,
+        sp: (usize, usize),
+        eb: usize,
+        ep: (usize, usize),
+    ) -> tree_sitter::Range {
+        tree_sitter::Range {
+            start_byte: sb,
+            start_point: Point::new(sp.0, sp.1),
+            end_byte: eb,
+            end_point: Point::new(ep.0, ep.1),
+        }
+    }
+
+    fn make_error(
+        sb: usize,
+        sp: (usize, usize),
+        eb: usize,
+        ep: (usize, usize),
+        message: &str,
+    ) -> Diagnostic {
+        Diagnostic {
+            range: ts_range(sb, sp, eb, ep),
+            severity: DiagnosticSeverity::Error,
+            message: String::from(message),
+        }
     }
 
     #[test]
     fn test_diagnostics_hello_world() {
         let (db, uri) = foo_db(slurp::read_all_to_string("examples/errors.qn").unwrap());
-        let diagnostics = db.diagnostics(uri);
+        let diagnostics = db.cst_diagnostics(uri);
         assert_eq!(
             diagnostics,
             im::vector![
-                make_error(0, 6, 0, 14, "syntax (ERROR (string))"),
-                make_error(0, 24, 0, 24, "syntax (MISSING \";\")"),
+                make_error(6, (0, 6), 14, (0, 14), "syntax (ERROR (string))"),
+                make_error(24, (0, 24), 24, (0, 24), "syntax (MISSING \";\")"),
             ],
         );
     }
@@ -634,11 +590,35 @@ mod tests {
     }
 
     #[test]
+    fn test_ast_hello_world() {
+        let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
+        let tree = db.ast(uri).unwrap();
+        let expected = syntax::File {
+            range: ts_range(0, (0, 0), 47, (3, 0)),
+            body: vec![syntax::Stmt {
+                range: ts_range(23, (2, 0), 46, (2, 23)),
+                expression: syntax::Expr::Call(syntax::Call {
+                    range: ts_range(23, (2, 0), 45, (2, 22)),
+                    function: syntax::Id {
+                        range: ts_range(23, (2, 0), 28, (2, 5)),
+                        name: String::from("print"),
+                    },
+                    arguments: vec![syntax::Expr::Lit(syntax::Lit::Str(syntax::Str {
+                        range: ts_range(29, (2, 6), 44, (2, 21)),
+                        value: String::from("Hello, world!"),
+                    }))],
+                }),
+            }],
+        };
+        assert_eq!(tree.as_ref(), &expected);
+    }
+
+    #[test]
     fn test_compile_hello_world() {
         let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
-        let compiled = db.compile(uri);
+        let compiled = db.compile(uri).unwrap();
         assert_eq!(
-            serde_json::to_value(compiled).unwrap(),
+            serde_json::to_value(compiled.as_ref()).unwrap(),
             serde_json::json!({
                 "type": "Program",
                 "body": [

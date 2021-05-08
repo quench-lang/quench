@@ -8,3 +8,6 @@ print(
 );
 print("👻 ba # not a comment
 z 🙃");
+
+# multiple arguments
+print("foo", "bar", "baz");

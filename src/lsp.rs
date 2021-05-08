@@ -2,7 +2,7 @@ mod state {
     use crate::db::{self, EditError};
     use lspower::lsp::{
         Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-        DidOpenTextDocumentParams, MessageType, SemanticToken,
+        DidOpenTextDocumentParams, MessageType, Range, SemanticToken,
     };
     use std::{fmt::Debug, thread};
     use tokio::sync::{mpsc, oneshot};
@@ -144,11 +144,30 @@ mod state {
             self.process(params).await?.map_err(OpError::Op)
         }
 
-        pub async fn get_diagnostics(
+        pub async fn get_compile_diagnostics(
             &self,
             uri: Url,
         ) -> Result<im::Vector<Diagnostic>, AsyncError> {
-            self.process(db::DiagnosticsRequest(uri)).await
+            Ok(match self.process(db::CompileRequest(uri.clone())).await? {
+                Ok(_) => im::vector![],
+                Err(diagnostics) => {
+                    let index = self.process(db::IndexRequest(uri)).await?.unwrap();
+                    diagnostics
+                        .into_iter()
+                        .map(|diag| {
+                            let mut lsp_diag = Diagnostic::new_simple(
+                                Range::new(
+                                    index.to_lsp(diag.range.start_point),
+                                    index.to_lsp(diag.range.end_point),
+                                ),
+                                diag.message,
+                            );
+                            lsp_diag.severity = Some(diag.severity);
+                            lsp_diag
+                        })
+                        .collect()
+                }
+            })
         }
 
         pub async fn get_semantic_tokens(
@@ -189,7 +208,7 @@ struct Backend {
 
 impl Backend {
     async fn push_diagnostics(&self, uri: Url) {
-        match self.state.get_diagnostics(uri.clone()).await {
+        match self.state.get_compile_diagnostics(uri.clone()).await {
             Err(error) => {
                 self.client.show_message(error.message_type(), error).await;
             }

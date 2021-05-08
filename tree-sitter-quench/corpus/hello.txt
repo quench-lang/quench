@@ -10,7 +10,8 @@ print("Hello, world!");
 
 (source_file
   (comment)
-  (call
-    function: (identifier)
-    arguments: (arguments
-      (string))))
+  body: (statement
+    expression: (call
+      function: (identifier)
+      arguments: (arguments
+        argument: (string)))))

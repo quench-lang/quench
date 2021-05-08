@@ -4,11 +4,11 @@ module.exports = grammar({
   extras: $ => [/\s/, $.comment],
 
   rules: {
-    source_file: $ => repeat($._statement),
+    source_file: $ => repeat(field('body', $.statement)),
 
     comment: $ => /#.*/,
 
-    _statement: $ => seq(choice($._expression), ';'),
+    statement: $ => seq(field('expression', $._expression), ';'),
 
     _expression: $ => choice($._literal, $.identifier, $.call),
 
@@ -26,8 +26,8 @@ module.exports = grammar({
     ),
 
     arguments: $ => seq(
-      $._expression,
-      repeat(seq(',', $._expression)),
+      field('argument', $._expression),
+      repeat(seq(',', field('argument', $._expression))),
       optional(','),
     ),
   },

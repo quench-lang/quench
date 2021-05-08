@@ -20,7 +20,7 @@ impl Codegen {
         Codegen { js_runtime }
     }
 
-    pub fn gen(&mut self, ast: estree::Program) -> Option<String> {
+    pub fn gen(&mut self, ast: &estree::Program) -> Option<String> {
         let context = self.js_runtime.global_context();
         let scope = &mut rusty_v8::HandleScope::with_context(self.js_runtime.v8_isolate(), context);
         let context = scope.get_current_context();
@@ -73,7 +73,7 @@ mod tests {
             })],
         };
         let mut codegen = Codegen::new();
-        let code = codegen.gen(ast).unwrap();
+        let code = codegen.gen(&ast).unwrap();
         assert_eq!(code, "console.log(\"Hello, world!\");\n");
     }
 }
