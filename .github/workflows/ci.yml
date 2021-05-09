@@ -42,8 +42,6 @@ jobs:
         run: npm install
       - name: Generate Tree-sitter parser
         run: npx tree-sitter generate
-      - name: Test parser
-        run: npx tree-sitter test
       - name: Ensure empty Git status
         run: |
           "$GITHUB_WORKSPACE/report_git_status.sh"
