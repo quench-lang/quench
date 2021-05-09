@@ -1,36 +1,89 @@
 use crate::diagnosis::Diagnostic;
 use lspower::lsp::DiagnosticSeverity;
-use std::fmt::Debug;
+use num::BigInt;
+use std::{fmt::Debug, str::FromStr};
 use tree_sitter::Range;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct File {
     pub range: Range,
-    pub body: Vec<Stmt>,
+    pub decls: Vec<Decl>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Decl {
+    pub range: Range,
+    pub name: Id,
+    pub val: Expr,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Stmt {
     pub range: Range,
-    pub expression: Expr,
+    pub expr: Expr,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Expr {
     Lit(Lit),
     Id(Id),
+    Block(Block),
     Call(Call),
+    Func(Func),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Lit {
+    Null { range: Range },
+    Bool(Bool),
+    Int(Int),
     Str(Str),
+    Sym(Sym),
+    List(List),
+    Map(Map),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Bool {
+    pub range: Range,
+    pub val: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Int {
+    pub range: Range,
+    pub val: BigInt,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Str {
     pub range: Range,
-    pub value: String,
+    pub val: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Sym {
+    pub range: Range,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct List {
+    pub range: Range,
+    pub items: Vec<Expr>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Map {
+    pub range: Range,
+    pub entries: Vec<Entry>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Entry {
+    pub range: Range,
+    pub key: Expr,
+    pub val: Expr,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,10 +93,24 @@ pub struct Id {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Block {
+    pub range: Range,
+    pub stmts: Vec<Stmt>, // nonempty
+    pub expr: Option<Box<Expr>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Call {
     pub range: Range,
-    pub function: Id,
-    pub arguments: Vec<Expr>,
+    pub func: Box<Expr>,
+    pub arg: Box<Expr>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Func {
+    pub range: Range,
+    pub param: Id,
+    pub body: Box<Expr>,
 }
 
 pub trait Node {
@@ -79,7 +146,21 @@ impl Node for File {
     fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
         Ok(File {
             range: node.range(),
-            body: make_children(text, node, "body")?,
+            decls: make_children(text, node, "declaration")?,
+        })
+    }
+
+    fn range(&self) -> Range {
+        self.range
+    }
+}
+
+impl Node for Decl {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        Ok(Decl {
+            range: node.range(),
+            name: Id::make(text, &node.child_by_field_name("name").unwrap())?,
+            val: Expr::make(text, &node.child_by_field_name("value").unwrap())?,
         })
     }
 
@@ -90,10 +171,9 @@ impl Node for File {
 
 impl Node for Stmt {
     fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
-        let expression = node.child_by_field_name("expression").unwrap();
         Ok(Stmt {
             range: node.range(),
-            expression: Expr::make(text, &expression)?,
+            expr: Expr::make(text, &node.child_by_field_name("expression").unwrap())?,
         })
     }
 
@@ -105,9 +185,38 @@ impl Node for Stmt {
 impl Node for Expr {
     fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
         match node.kind() {
-            "string" => Lit::make(text, node).map(Expr::Lit),
+            "parenthesized" => Expr::make(text, &node.child_by_field_name("expression").unwrap()),
             "identifier" => Id::make(text, node).map(Expr::Id),
+            "block" => Block::make(text, node).map(Expr::Block),
             "call" => Call::make(text, node).map(Expr::Call),
+            "function" => Func::make(text, node).map(Expr::Func),
+            _ => Lit::make(text, node).map(Expr::Lit),
+        }
+    }
+
+    fn range(&self) -> Range {
+        match self {
+            Expr::Lit(x) => x.range(),
+            Expr::Id(x) => x.range(),
+            Expr::Block(x) => x.range(),
+            Expr::Call(x) => x.range(),
+            Expr::Func(x) => x.range(),
+        }
+    }
+}
+
+impl Node for Lit {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        match node.kind() {
+            "null" => Ok(Lit::Null {
+                range: node.range(),
+            }),
+            "boolean" => Bool::make(text, node).map(Lit::Bool),
+            "integer" => Int::make(text, node).map(Lit::Int),
+            "string" => Str::make(text, node).map(Lit::Str),
+            "symbol" => Sym::make(text, node).map(Lit::Sym),
+            "list" => List::make(text, node).map(Lit::List),
+            "map" => Map::make(text, node).map(Lit::Map),
             kind => Err(im::vector![Diagnostic {
                 range: node.range(),
                 severity: DiagnosticSeverity::Error,
@@ -118,22 +227,50 @@ impl Node for Expr {
 
     fn range(&self) -> Range {
         match self {
-            Expr::Lit(x) => x.range(),
-            Expr::Id(x) => x.range(),
-            Expr::Call(x) => x.range(),
+            Lit::Null { range } => *range,
+            Lit::Bool(x) => x.range(),
+            Lit::Int(x) => x.range(),
+            Lit::Str(x) => x.range(),
+            Lit::Sym(x) => x.range(),
+            Lit::List(x) => x.range(),
+            Lit::Map(x) => x.range(),
         }
     }
 }
 
-impl Node for Lit {
+impl Node for Bool {
     fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
-        Str::make(text, node).map(Lit::Str)
+        Ok(Bool {
+            range: node.range(),
+            val: match node.utf8_text(text.as_bytes()).unwrap() {
+                "true" => true,
+                "false" => false,
+                _ => unreachable!(),
+            },
+        })
     }
 
     fn range(&self) -> Range {
-        match self {
-            Lit::Str(x) => x.range(),
-        }
+        self.range
+    }
+}
+
+impl Node for Int {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        Ok(Int {
+            range: node.range(),
+            val: BigInt::from_str(node.utf8_text(text.as_bytes()).unwrap()).map_err(|err| {
+                im::vector![Diagnostic {
+                    range: node.range(),
+                    severity: DiagnosticSeverity::Error,
+                    message: err.to_string(),
+                }]
+            })?,
+        })
+    }
+
+    fn range(&self) -> Range {
+        self.range
     }
 }
 
@@ -149,7 +286,65 @@ impl Node for Str {
             .unwrap();
         Ok(Str {
             range: node.range(),
-            value: String::from(value),
+            val: String::from(value),
+        })
+    }
+
+    fn range(&self) -> Range {
+        self.range
+    }
+}
+
+impl Node for Sym {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        Ok(Sym {
+            range: node.range(),
+            name: node
+                .utf8_text(text.as_bytes())
+                .unwrap()
+                .strip_prefix(".")
+                .unwrap()
+                .to_string(),
+        })
+    }
+
+    fn range(&self) -> Range {
+        self.range
+    }
+}
+
+impl Node for List {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        Ok(List {
+            range: node.range(),
+            items: make_children(text, node, "item")?,
+        })
+    }
+
+    fn range(&self) -> Range {
+        self.range
+    }
+}
+
+impl Node for Map {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        Ok(Map {
+            range: node.range(),
+            entries: make_children(text, node, "entry")?,
+        })
+    }
+
+    fn range(&self) -> Range {
+        self.range
+    }
+}
+
+impl Node for Entry {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        Ok(Entry {
+            range: node.range(),
+            key: Expr::make(text, &node.child_by_field_name("key").unwrap())?,
+            val: Expr::make(text, &node.child_by_field_name("value").unwrap())?,
         })
     }
 
@@ -171,14 +366,52 @@ impl Node for Id {
     }
 }
 
+impl Node for Block {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        Ok(Block {
+            range: node.range(),
+            stmts: make_children(text, node, "statement")?,
+            expr: match node.child_by_field_name("expression") {
+                Some(expr) => Some(Box::new(Expr::make(text, &expr)?)),
+                None => None,
+            },
+        })
+    }
+
+    fn range(&self) -> Range {
+        self.range
+    }
+}
+
 impl Node for Call {
     fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
-        let function = node.child_by_field_name("function").unwrap();
-        let arguments = node.child_by_field_name("arguments").unwrap();
         Ok(Call {
             range: node.range(),
-            function: Id::make(text, &function)?,
-            arguments: make_children(text, &arguments, "argument")?,
+            func: Box::new(Expr::make(
+                text,
+                &node.child_by_field_name("function").unwrap(),
+            )?),
+            arg: Box::new(Expr::make(
+                text,
+                &node.child_by_field_name("argument").unwrap(),
+            )?),
+        })
+    }
+
+    fn range(&self) -> Range {
+        self.range
+    }
+}
+
+impl Node for Func {
+    fn make(text: &str, node: &tree_sitter::Node) -> Result<Self, im::Vector<Diagnostic>> {
+        Ok(Func {
+            range: node.range(),
+            param: Id::make(text, &node.child_by_field_name("parameter").unwrap())?,
+            body: Box::new(Expr::make(
+                text,
+                &node.child_by_field_name("body").unwrap(),
+            )?),
         })
     }
 

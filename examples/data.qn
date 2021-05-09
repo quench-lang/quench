@@ -1,0 +1,24 @@
+my_null := null;
+
+my_boolean := true;
+my_other_boolean := false;
+
+my_int := 42;
+my_negative_int := -3;
+
+my_string := "hello";
+
+my_symbol := .hi_there;
+
+my_list := [1, "yes", 3, false];
+my_empty_list := [];
+
+my_map := {
+  .foo: 42,
+  [
+    .baz,
+    null,
+  ]: .qux,
+  "bar": [-8, {}, 10, []],
+};
+my_empty_map := {};

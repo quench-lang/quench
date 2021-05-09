@@ -1,3 +1,2 @@
 #!/usr/bin/env quench
-
-print("Hello, world!");
+main := _ => print "Hello, world!";

@@ -2,24 +2,30 @@ args:
   args:
     - foo
     - bar
+  status: 0
   out: |
     [ "foo", "bar" ]
 
 complicated:
+  status: 0
   out: |
     foo
     bar
     undefined
     👻 ba # not a comment
-    z 🙃
-    foo bar baz
+      z 🙃
+    [ "foo", "bar", "baz" ]
+
+data:
+  status: 0
 
 errors:
   compile: |
-    0:6 to 0:14 Error: syntax (ERROR (string))
-    0:24 to 0:24 Error: syntax (MISSING ";")
+    0:10 to 0:12 Error: syntax (ERROR)
+    0:34 to 0:34 Error: syntax (MISSING ";")
     Error: Failed to compile.
 
 hello:
+  status: 0
   out: |
     Hello, world!

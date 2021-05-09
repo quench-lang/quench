@@ -1,13 +1,15 @@
-print("foo" # closing parenthesis coming soon...
-);
+main := _ => {
+  print ("foo" # closing parenthesis coming soon...
+  );
 
-# whoa nesting
-print(
-  # this is an argument
-  print("bar")
-);
-print("👻 ba # not a comment
-z 🙃");
+  # whoa nesting
+  print (
+    # this is an argument
+    print "bar"
+  );
+  print "👻 ba # not a comment
+  z 🙃";
 
-# multiple arguments
-print("foo", "bar", "baz");
+  # argument is a list
+  print ["foo", "bar", "baz"];
+};

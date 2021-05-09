@@ -126,9 +126,7 @@ fn write_example(writer: &mut impl Write, name: &str, example: &Example) -> io::
                     write!(writer, "    - {}\n", arg)?;
                 }
             }
-            if *status != 0 {
-                write!(writer, "  status: {}\n", status)?;
-            }
+            write!(writer, "  status: {}\n", status)?;
             write_literal(writer, "out", out)?;
             write_literal(writer, "err", err)?;
         }

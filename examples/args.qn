@@ -1,1 +1,1 @@
-print(args);
+main := _ => print args;

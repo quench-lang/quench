@@ -1,1 +1,1 @@
-print("Hello,"" world!")
+main := 3 => print "Hello, world!"

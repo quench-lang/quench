@@ -1,1 +1,4 @@
-console.log("Hello, world!");
+var main = function (_) {
+  return console.log("Hello, world!");
+};
+main();
