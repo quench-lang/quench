@@ -1,7 +1,11 @@
+#![allow(dead_code)]
+#![allow(non_snake_case)]
+
 use either::Either;
 use serde::{Serialize, Serializer};
 
-// https://github.com/estree/estree/blob/0fa6c005fa452f1f970b3923d5faa38178906d08/es5.md
+// https://github.com/estree/estree/blob/14df8a024956ea289bd55b9c2226a1d5b8a473ee/es5.md
+// https://github.com/estree/estree/blob/70d58d73f69a3a72b51ed3fb540fae2550160619/es2015.md
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
@@ -43,7 +47,7 @@ pub enum Literal {
         value: Value,
     },
 
-    #[serde(rename = "RegExpLiteral")]
+    #[serde(rename = "Literal")]
     RegExp {
         regex: RegExp,
     },
@@ -58,8 +62,18 @@ pub struct RegExp {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub struct Program {
+    pub sourceType: SourceType,
     #[serde(serialize_with = "serialize_vec_either_untagged")]
-    pub body: Vec<Either<Directive, Statement>>,
+    pub body: Vec<Either<Statement, ModuleDeclaration>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub enum SourceType {
+    #[serde(rename = "script")]
+    Script,
+
+    #[serde(rename = "module")]
+    Module,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -145,7 +159,15 @@ pub enum Statement {
     #[serde(rename = "ForInStatement")]
     ForIn {
         #[serde(with = "either::serde_untagged")]
-        left: Either<VariableDeclaration, Pattern>,
+        left: Either<VariableDeclaration, Box<Pattern>>,
+        right: Box<Expression>,
+        body: Box<Statement>,
+    },
+
+    #[serde(rename = "ForOfStatement")]
+    ForOf {
+        #[serde(with = "either::serde_untagged")]
+        left: Either<VariableDeclaration, Box<Pattern>>,
         right: Box<Expression>,
         body: Box<Statement>,
     },
@@ -154,11 +176,18 @@ pub enum Statement {
         id: Identifier,
         params: Vec<Pattern>,
         body: FunctionBody,
+        generator: bool,
     },
 
     VariableDeclaration {
         declarations: Vec<VariableDeclarator>,
         kind: DeclarationKind,
+    },
+
+    ClassDeclaration {
+        id: Identifier,
+        superClass: Option<Box<Expression>>,
+        body: ClassBody,
     },
 }
 
@@ -192,7 +221,7 @@ pub struct SwitchCase {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub struct CatchClause {
-    pub param: Pattern,
+    pub param: Box<Pattern>,
     pub body: BlockStatement,
 }
 
@@ -207,12 +236,18 @@ pub struct VariableDeclaration {
 pub enum DeclarationKind {
     #[serde(rename = "var")]
     Var,
+
+    #[serde(rename = "let")]
+    Let,
+
+    #[serde(rename = "const")]
+    Const,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub struct VariableDeclarator {
-    pub id: Pattern,
+    pub id: Box<Pattern>,
     pub init: Option<Box<Expression>>,
 }
 
@@ -227,6 +262,7 @@ pub enum Expression {
         value: Value,
     },
 
+    #[serde(rename = "Literal")]
     RegExpLiteral {
         regex: RegExp,
     },
@@ -236,7 +272,8 @@ pub enum Expression {
 
     #[serde(rename = "ArrayExpression")]
     Array {
-        elements: Vec<Option<Expression>>,
+        #[serde(serialize_with = "serialize_vec_either_option_untagged")]
+        elements: Vec<Option<Either<Expression, SpreadElement>>>,
     },
 
     #[serde(rename = "ObjectExpression")]
@@ -249,6 +286,7 @@ pub enum Expression {
         id: Option<Identifier>,
         params: Vec<Pattern>,
         body: FunctionBody,
+        generator: bool,
     },
 
     #[serde(rename = "UnaryExpression")]
@@ -275,8 +313,7 @@ pub enum Expression {
     #[serde(rename = "AssignmentExpression")]
     Assignment {
         operator: AssignmentOperator,
-        #[serde(with = "either::serde_untagged")]
-        left: Either<Pattern, Box<Expression>>,
+        left: Box<Pattern>,
         right: Box<Expression>,
     },
 
@@ -289,7 +326,8 @@ pub enum Expression {
 
     #[serde(rename = "MemberExpression")]
     Member {
-        object: Box<Expression>,
+        #[serde(with = "either::serde_untagged")]
+        object: Either<Box<Expression>, Super>,
         property: Box<Expression>,
         computed: bool,
     },
@@ -303,29 +341,83 @@ pub enum Expression {
 
     #[serde(rename = "CallExpression")]
     Call {
-        callee: Box<Expression>,
-        arguments: Vec<Expression>,
+        #[serde(with = "either::serde_untagged")]
+        callee: Either<Box<Expression>, Super>,
+        #[serde(serialize_with = "serialize_vec_either_untagged")]
+        arguments: Vec<Either<Expression, SpreadElement>>,
     },
 
     #[serde(rename = "NewExpression")]
     New {
         callee: Box<Expression>,
-        arguments: Vec<Expression>,
+        #[serde(serialize_with = "serialize_vec_either_untagged")]
+        arguments: Vec<Either<Expression, SpreadElement>>,
     },
 
     #[serde(rename = "SequenceExpression")]
     Sequence {
         expressions: Vec<Expression>,
     },
+
+    #[serde(rename = "ArrowFunctionExpression")]
+    ArrowFunction {
+        id: Option<Identifier>,
+        params: Vec<Pattern>,
+        #[serde(with = "either::serde_untagged")]
+        body: Either<FunctionBody, Box<Expression>>,
+        generator: bool,
+        expression: bool,
+    },
+
+    #[serde(rename = "YieldExpression")]
+    Yield {
+        argument: Option<Box<Expression>>,
+        delegate: bool,
+    },
+
+    TemplateLiteral {
+        quasis: Vec<TemplateElement>,
+        expressions: Vec<Expression>,
+    },
+
+    #[serde(rename = "TaggedTemplateExpression")]
+    TaggedTemplate {
+        tag: Box<Expression>,
+        quasi: TemplateLiteral,
+    },
+
+    #[serde(rename = "ClassExpression")]
+    Class {
+        id: Option<Identifier>,
+        superClass: Option<Box<Expression>>,
+        body: ClassBody,
+    },
+
+    MetaProperty {
+        meta: Identifier,
+        property: Identifier,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub struct Property {
-    #[serde(with = "either::serde_untagged")]
-    pub key: Either<Literal, Identifier>,
+    pub key: Box<Expression>,
     pub value: Box<Expression>,
     pub kind: PropertyKind,
+    pub method: bool,
+    pub shorthand: bool,
+    pub computed: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename = "Property", tag = "type")]
+pub struct AssignmentProperty {
+    pub key: Box<Expression>,
+    pub value: Box<Pattern>,
+    pub kind: PropertyKind, // always "init"
+    pub method: bool,       // always false
+    pub shorthand: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -338,6 +430,36 @@ pub enum PropertyKind {
 
     #[serde(rename = "set")]
     Set,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct Super {}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct SpreadElement {
+    pub argument: Box<Expression>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct TemplateLiteral {
+    pub quasis: Vec<TemplateElement>,
+    pub expressions: Vec<Expression>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct TemplateElement {
+    pub tail: bool,
+    pub value: TemplateValue,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct TemplateValue {
+    pub cooked: String,
+    pub raw: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -499,6 +621,174 @@ pub enum Pattern {
         property: Box<Expression>,
         computed: bool,
     },
+
+    #[serde(rename = "ObjectPattern")]
+    Object {
+        properties: Vec<AssignmentProperty>,
+    },
+
+    #[serde(rename = "ArrayPattern")]
+    Array {
+        properties: Vec<Option<Pattern>>,
+    },
+
+    RestElement {
+        argument: Box<Pattern>,
+    },
+
+    #[serde(rename = "AssignmentPattern")]
+    Assignment {
+        left: Box<Pattern>,
+        right: Box<Expression>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct ClassBody {
+    pub body: Vec<MethodDefinition>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct MethodDefinition {
+    pub key: Box<Expression>,
+    pub value: FunctionExpression,
+    pub kind: MethodKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct FunctionExpression {
+    pub id: Option<Identifier>,
+    pub params: Vec<Pattern>,
+    pub body: FunctionBody,
+    pub generator: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub enum MethodKind {
+    #[serde(rename = "constructor")]
+    Constructor,
+
+    #[serde(rename = "method")]
+    Method,
+
+    #[serde(rename = "get")]
+    Get,
+
+    #[serde(rename = "set")]
+    Set,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub enum ModuleDeclaration {
+    #[serde(rename = "ImportDeclaration")]
+    Import {
+        specifiers: Vec<ImportSpecifier>,
+        source: Literal,
+    },
+
+    #[serde(rename = "ExportNamedDeclaration")]
+    ExportNamed {
+        declaration: Option<Declaration>,
+        specifiers: Vec<ExportSpecifier>,
+        source: Option<Literal>,
+    },
+
+    #[serde(rename = "ExportDefaultDeclaration")]
+    ExportDefault {
+        declaration: ExportDefaultDeclaration,
+    },
+
+    #[serde(rename = "ExportDefaultDeclaration")]
+    ExportDefaultExpression { declaration: Expression },
+
+    #[serde(rename = "ExportAllDeclaration")]
+    ExportAll { source: Literal },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub enum Declaration {
+    #[serde(rename = "FunctionDeclaration")]
+    Function {
+        id: Identifier,
+        params: Vec<Pattern>,
+        body: FunctionBody,
+        generator: bool,
+    },
+
+    #[serde(rename = "VariableDeclaration")]
+    Variable {
+        declarations: Vec<VariableDeclarator>,
+        kind: DeclarationKind,
+    },
+
+    #[serde(rename = "ClassDeclaration")]
+    Class {
+        id: Identifier,
+        superClass: Option<Box<Expression>>,
+        body: ClassBody,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub enum ImportSpecifier {
+    #[serde(rename = "ImportSpecifier")]
+    Import {
+        local: Identifier,
+        imported: Identifier,
+    },
+
+    #[serde(rename = "ImportDefaultSpecifier")]
+    ImportDefault { local: Identifier },
+
+    #[serde(rename = "ImportNamespaceSpecifier")]
+    ImportNamespace { local: Identifier },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct ExportSpecifier {
+    pub local: Identifier,
+    pub exported: Identifier,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub enum ExportDefaultDeclaration {
+    #[serde(rename = "AnonymousDefaultExportedFunctionDeclaration")]
+    AnonymousDefaultExportedFunction {
+        id: Option<Identifier>, // always null
+        params: Vec<Pattern>,
+        body: FunctionBody,
+        generator: bool,
+    },
+
+    #[serde(rename = "FunctionDeclaration")]
+    Function {
+        id: Identifier,
+        params: Vec<Pattern>,
+        body: FunctionBody,
+        generator: bool,
+    },
+
+    #[serde(rename = "AnonymousDefaultExportedClassDeclaration")]
+    AnonymousDefaultExportedClass {
+        id: Option<Identifier>, // always null
+        superClass: Option<Box<Expression>>,
+        body: ClassBody,
+    },
+
+    #[serde(rename = "ClassDeclaration")]
+    Class {
+        id: Identifier,
+        superClass: Option<Box<Expression>>,
+        body: ClassBody,
+    },
 }
 
 // https://github.com/bluss/either/blob/1.6.1/src/serde_untagged_optional.rs
@@ -521,9 +811,29 @@ where
 {
     let untagged: Vec<_> = this
         .iter()
-        .map(|either| match either {
+        .map(|x| match x {
             Either::Left(ref left) => UntaggedEither::Left(left),
             Either::Right(ref right) => UntaggedEither::Right(right),
+        })
+        .collect();
+    untagged.serialize(serializer)
+}
+
+fn serialize_vec_either_option_untagged<L, R, S>(
+    this: &Vec<Option<Either<L, R>>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+    L: Serialize,
+    R: Serialize,
+{
+    let untagged: Vec<_> = this
+        .iter()
+        .map(|x| match x {
+            None => None,
+            Some(Either::Left(ref left)) => Some(UntaggedEither::Left(left)),
+            Some(Either::Right(ref right)) => Some(UntaggedEither::Right(right)),
         })
         .collect();
     untagged.serialize(serializer)
@@ -550,29 +860,8 @@ mod tests {
             },
         };
         let expected = serde_json::json!({
-            "type": "RegExpLiteral",
+            "type": "Literal",
             "regex": {"pattern": "foo", "flags": "yu"},
-        });
-        assert_eq!(serde_json::to_value(ast).unwrap(), expected)
-    }
-
-    #[test]
-    fn test_directive() {
-        let ast = Program {
-            body: vec![Either::Left(Directive {
-                expression: Literal::Literal {
-                    value: Value::String(String::from("use strict")),
-                },
-                directive: String::from("use strict"),
-            })],
-        };
-        let expected = serde_json::json!({
-            "type": "Program",
-            "body": [{
-                "type": "ExpressionStatement",
-                "expression": {"type": "Literal", "value": "use strict"},
-                "directive": "use strict",
-            }],
         });
         assert_eq!(serde_json::to_value(ast).unwrap(), expected)
     }
@@ -599,6 +888,7 @@ mod tests {
                     directive: String::from("use strict"),
                 })],
             },
+            generator: false,
         };
         let expected = serde_json::json!({
             "type": "FunctionDeclaration",
@@ -612,6 +902,7 @@ mod tests {
                     "directive": "use strict",
                 }],
             },
+            "generator": false,
         });
         assert_eq!(serde_json::to_value(ast).unwrap(), expected)
     }
@@ -659,15 +950,15 @@ mod tests {
         let ast = VariableDeclaration {
             declarations: vec![
                 VariableDeclarator {
-                    id: Pattern::Identifier {
+                    id: Box::new(Pattern::Identifier {
                         name: String::from("x"),
-                    },
+                    }),
                     init: None,
                 },
                 VariableDeclarator {
-                    id: Pattern::Identifier {
+                    id: Box::new(Pattern::Identifier {
                         name: String::from("y"),
-                    },
+                    }),
                     init: Some(Box::new(Expression::Literal {
                         value: Value::Number(42.0),
                     })),
@@ -695,31 +986,89 @@ mod tests {
     }
 
     #[test]
+    fn test_array_sparse() {
+        let ast = Expression::Array {
+            elements: vec![
+                Some(Either::Left(Expression::Literal {
+                    value: Value::Number(1.0),
+                })),
+                None,
+                Some(Either::Left(Expression::Literal {
+                    value: Value::Number(2.0),
+                })),
+            ],
+        };
+        let expected = serde_json::json!({
+            "type": "ArrayExpression",
+            "elements": [
+                {"type": "Literal", "value": 1.0},
+                null,
+                {"type": "Literal", "value": 2.0},
+            ],
+        });
+        assert_eq!(serde_json::to_value(ast).unwrap(), expected)
+    }
+
+    #[test]
+    fn test_array_spread() {
+        let ast = Expression::Array {
+            elements: vec![
+                Some(Either::Left(Expression::Identifier {
+                    name: String::from("head"),
+                })),
+                Some(Either::Right(SpreadElement {
+                    argument: Box::new(Expression::Identifier {
+                        name: String::from("iter"),
+                    }),
+                })),
+                Some(Either::Left(Expression::Identifier {
+                    name: String::from("tail"),
+                })),
+            ],
+        };
+        let expected = serde_json::json!({
+            "type": "ArrayExpression",
+            "elements": [
+                {"type": "Identifier", "name": "head"},
+                {"type": "SpreadElement", "argument": {"type": "Identifier", "name": "iter"}},
+                {"type": "Identifier", "name": "tail"},
+            ],
+        });
+        assert_eq!(serde_json::to_value(ast).unwrap(), expected)
+    }
+
+    #[test]
     fn test_assign_object() {
         let ast = Expression::Assignment {
             operator: AssignmentOperator::Equal,
-            left: Either::Right(Box::new(Expression::Identifier {
+            left: Box::new(Pattern::Identifier {
                 name: String::from("x"),
-            })),
+            }),
             right: Box::new(Expression::Object {
                 properties: vec![
                     Property {
-                        key: Either::Right(Identifier {
+                        key: Box::new(Expression::Identifier {
                             name: String::from("a"),
                         }),
                         value: Box::new(Expression::Literal {
                             value: Value::Number(1.0),
                         }),
                         kind: PropertyKind::Init,
+                        method: false,
+                        shorthand: false,
+                        computed: false,
                     },
                     Property {
-                        key: Either::Left(Literal::Literal {
+                        key: Box::new(Expression::Literal {
                             value: Value::String(String::from("b")),
                         }),
                         value: Box::new(Expression::Identifier {
                             name: String::from("y"),
                         }),
                         kind: PropertyKind::Init,
+                        method: false,
+                        shorthand: false,
+                        computed: false,
                     },
                 ],
             }),
@@ -736,16 +1085,29 @@ mod tests {
                         "key": {"type": "Identifier", "name": "a"},
                         "value": {"type": "Literal", "value": 1.0},
                         "kind": "init",
+                        "method": false,
+                        "shorthand": false,
+                        "computed": false,
                     },
                     {
                         "type": "Property",
                         "key": {"type": "Literal", "value": "b"},
                         "value": {"type": "Identifier", "name": "y"},
                         "kind": "init",
+                        "method": false,
+                        "shorthand": false,
+                        "computed": false,
                     },
                 ]
             }
         });
+        assert_eq!(serde_json::to_value(ast).unwrap(), expected)
+    }
+
+    #[test]
+    fn test_super() {
+        let ast = Super {};
+        let expected = serde_json::json!({"type": "Super"});
         assert_eq!(serde_json::to_value(ast).unwrap(), expected)
     }
 

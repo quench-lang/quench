@@ -2,7 +2,6 @@ mod codegen;
 mod compiler;
 mod db;
 mod diagnosis;
-#[allow(dead_code)]
 mod estree;
 mod lsp;
 mod parser;

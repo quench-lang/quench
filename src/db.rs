@@ -646,6 +646,7 @@ mod tests {
             serde_json::to_value(compiled.as_ref()).unwrap(),
             serde_json::json!({
                 "type": "Program",
+                "sourceType": "module",
                 "body": [
                     {
                         "type": "VariableDeclaration",
@@ -693,7 +694,8 @@ mod tests {
                                                 }
                                             }
                                         ]
-                                    }
+                                    },
+                                    "generator": false
                                 }
                             }
                         ],

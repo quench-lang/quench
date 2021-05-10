@@ -55,20 +55,21 @@ mod tests {
     #[test]
     fn test_hello_world() {
         let ast = estree::Program {
-            body: vec![Either::Right(estree::Statement::Expression {
+            sourceType: estree::SourceType::Module,
+            body: vec![Either::Left(estree::Statement::Expression {
                 expression: Box::new(estree::Expression::Call {
-                    callee: Box::new(estree::Expression::Member {
-                        object: Box::new(estree::Expression::Identifier {
+                    callee: Either::Left(Box::new(estree::Expression::Member {
+                        object: Either::Left(Box::new(estree::Expression::Identifier {
                             name: String::from("console"),
-                        }),
+                        })),
                         property: Box::new(estree::Expression::Identifier {
                             name: String::from("log"),
                         }),
                         computed: false,
-                    }),
-                    arguments: vec![estree::Expression::Literal {
+                    })),
+                    arguments: vec![Either::Left(estree::Expression::Literal {
                         value: estree::Value::String(String::from("Hello, world!")),
-                    }],
+                    })],
                 }),
             })],
         };
