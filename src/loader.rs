@@ -34,33 +34,31 @@ impl ModuleLoader for FixedLoader {
         _maybe_referrer: Option<ModuleSpecifier>,
         _is_dyn_import: bool,
     ) -> Pin<Box<ModuleSourceFuture>> {
-        let main_module = self.main_module.clone();
-        let main_source = self.main_source.clone(); // TODO
-        let module_specifier = module_specifier.clone();
-        async move {
-            let specifier_str = module_specifier.as_str();
-            if specifier_str == "https://deno.land/x/immutable@4.0.0-rc.12-deno/mod.ts" {
-                Ok(ModuleSource {
-                    code: include_str!("../jsdeps/node_modules/immutable/dist/immutable.es.js")
-                        .to_string(),
-                    module_url_specified: module_specifier.to_string(),
-                    module_url_found: concat!(
-                        "https://github.com/quench-lang/quench/raw/",
-                        env!("VERGEN_GIT_SHA"),
-                        "/jsdeps/node_modules/immutable/dist/immutable.es.js",
-                    )
+        let specifier_str = module_specifier.as_str();
+        let result = if specifier_str == "https://deno.land/x/immutable@4.0.0-rc.12-deno/mod.ts" {
+            Ok(ModuleSource {
+                code: include_str!("../jsdeps/node_modules/immutable/dist/immutable.es.js")
                     .to_string(),
-                })
-            } else if specifier_str == main_module.as_str() {
-                Ok(ModuleSource {
-                    code: main_source,
-                    module_url_specified: module_specifier.to_string(),
-                    module_url_found: main_module.to_string(),
-                })
-            } else {
-                Err(LoadError { module_specifier })?
-            }
-        }
-        .boxed_local()
+                module_url_specified: module_specifier.to_string(),
+                module_url_found: concat!(
+                    "https://github.com/quench-lang/quench/raw/",
+                    env!("VERGEN_GIT_SHA"),
+                    "/jsdeps/node_modules/immutable/dist/immutable.es.js",
+                )
+                .to_string(),
+            })
+        } else if specifier_str == self.main_module.as_str() {
+            Ok(ModuleSource {
+                code: self.main_source.clone(),
+                module_url_specified: module_specifier.to_string(),
+                module_url_found: self.main_module.to_string(),
+            })
+        } else {
+            Err(LoadError {
+                module_specifier: module_specifier.clone(),
+            })
+            .map_err(|e| anyhow::anyhow!(e))
+        };
+        async move { result }.boxed_local()
     }
 }
