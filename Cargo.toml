@@ -11,11 +11,11 @@ categories = [
   "compilers",
 ]
 include = [
-  "/jsdeps/node_modules/astring/LICENSE",
-  "/jsdeps/node_modules/astring/dist/astring.min.js",
-  "/jsdeps/node_modules/immutable/LICENSE",
-  "/jsdeps/node_modules/immutable/dist/immutable.es.js",
   "/build.rs",
+  "/jsdeps/node_modules/astring/dist/astring.min.js",
+  "/jsdeps/node_modules/astring/LICENSE",
+  "/jsdeps/node_modules/immutable/dist/immutable.es.js",
+  "/jsdeps/node_modules/immutable/LICENSE",
   "/LICENSE",
   "/README.md",
   "/src",
