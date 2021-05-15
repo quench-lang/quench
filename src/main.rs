@@ -11,7 +11,7 @@ mod syntax;
 mod text;
 
 use crate::{codegen::Codegen, db::QueryGroup, diagnosis::Diagnostic};
-use std::{env, path::PathBuf, rc::Rc, sync::Arc};
+use std::{env, fs, path::PathBuf, rc::Rc, sync::Arc};
 use structopt::StructOpt;
 use url::Url;
 
@@ -57,7 +57,7 @@ enum Opt {
 fn compile(file: &PathBuf) -> anyhow::Result<String> {
     let uri = Url::from_file_path(file.canonicalize()?).unwrap();
     let mut db = db::Database::default();
-    db.open_document(uri.clone(), slurp::read_all_to_string(file)?)?;
+    db.open_document(uri.clone(), fs::read_to_string(file)?)?;
 
     match db.compile(uri) {
         Ok(compiled) => {
@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_deno_version() {
-        let deno_core_version = slurp::read_all_to_string("Cargo.toml")
+        let deno_core_version = fs::read_to_string("Cargo.toml")
             .unwrap()
             .parse::<toml::Value>()
             .unwrap()

@@ -2227,7 +2227,6 @@ dependencies = [
  "serde_json",
  "serde_v8",
  "serde_yaml",
- "slurp",
  "structopt",
  "strum",
  "strum_macros",
@@ -2742,12 +2741,6 @@ name = "slotmap"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c46a3482db8f247956e464d783693ece164ca056e6e67563ee5505bdb86452cd"
-
-[[package]]
-name = "slurp"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "673e801a0f3b2f8c5c5c4371ba6e09e5ace34bca8df26db5945d01f072caf704"
 
 [[package]]
 name = "smallvec"

@@ -1,10 +1,10 @@
 use comrak::ComrakOptions;
 use regex::Regex;
-use std::{collections::HashSet, path::PathBuf, str};
+use std::{collections::HashSet, fs, path::PathBuf, str};
 
 #[test]
 fn test_version() {
-    let version = slurp::read_all_to_string("Cargo.toml")
+    let version = fs::read_to_string("Cargo.toml")
         .unwrap()
         .parse::<toml::Value>()
         .unwrap()
@@ -19,7 +19,7 @@ fn test_version() {
         let path = PathBuf::from(dir).join("package.json");
         assert_eq!(
             version,
-            slurp::read_all_to_string(&path)
+            fs::read_to_string(&path)
                 .ok()
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
                 .unwrap()
@@ -40,7 +40,7 @@ fn test_minimum_rustc() {
         let arena = comrak::Arena::new();
         let heading = comrak::parse_document(
             &arena,
-            &slurp::read_all_to_string("README.md").unwrap(),
+            &fs::read_to_string("README.md").unwrap(),
             &ComrakOptions::default(),
         )
         .first_child()
@@ -76,7 +76,7 @@ fn test_minimum_rustc() {
     let ci_versions: HashSet<String> = {
         let re = Regex::new(r"^(\d+\.\d+)\.\d+$").unwrap();
         serde_yaml::from_str::<serde_yaml::Value>(
-            &slurp::read_all_to_string(".github/workflows/ci.yml").unwrap(),
+            &fs::read_to_string(".github/workflows/ci.yml").unwrap(),
         )
         .unwrap()
         .get("jobs")

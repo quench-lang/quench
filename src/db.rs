@@ -414,6 +414,7 @@ mod tests {
     use super::*;
     use lspower::lsp::{Range, VersionedTextDocumentIdentifier};
     use pretty_assertions::assert_eq;
+    use std::fs;
 
     fn foo_db(text: String) -> (Database, Url) {
         let mut db = Database::default();
@@ -544,7 +545,7 @@ mod tests {
 
     #[test]
     fn test_diagnostics_hello_world() {
-        let (db, uri) = foo_db(slurp::read_all_to_string("examples/errors.qn").unwrap());
+        let (db, uri) = foo_db(fs::read_to_string("examples/errors.qn").unwrap());
         let diagnostics = db.cst_diagnostics(uri);
         assert_eq!(
             diagnostics,
@@ -572,7 +573,7 @@ mod tests {
 
     #[test]
     fn test_tokens_hello_world() {
-        let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
+        let (db, uri) = foo_db(fs::read_to_string("examples/hello.qn").unwrap());
         let tokens = db.semantic_tokens(uri);
         assert_eq!(
             tokens,
@@ -605,7 +606,7 @@ mod tests {
 
     #[test]
     fn test_ast_hello_world() {
-        let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
+        let (db, uri) = foo_db(fs::read_to_string("examples/hello.qn").unwrap());
         let tree = db.ast(uri).unwrap();
         let expected = syntax::File {
             range: ts_range(0, (0, 0), 58, (2, 0)),
@@ -640,7 +641,7 @@ mod tests {
 
     #[test]
     fn test_compile_hello_world() {
-        let (db, uri) = foo_db(slurp::read_all_to_string("examples/hello.qn").unwrap());
+        let (db, uri) = foo_db(fs::read_to_string("examples/hello.qn").unwrap());
         let compiled = db.compile(uri).unwrap();
         assert_eq!(
             serde_json::to_value(compiled.as_ref()).unwrap(),
