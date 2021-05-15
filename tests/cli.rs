@@ -32,6 +32,7 @@ where
     Command::cargo_bin("quench")
         .unwrap()
         .env("NO_COLOR", "1")
+        .arg("--stdlib-placeholder")
         .arg(name)
         .args(args)
         .output()
@@ -188,4 +189,33 @@ fn test_examples() {
     // redundant check, to ensure that our write_examples function works correctly; we first re-read
     // the examples file because if REGENERATE_GOLDENFILES is set then it might have been modified
     assert_eq!(read_examples(), expected);
+}
+
+#[test]
+fn test_stdlib_import() {
+    let Output {
+        status,
+        stdout,
+        stderr,
+    } = Command::cargo_bin("quench")
+        .unwrap()
+        .arg("compile")
+        .arg("examples/hello.qn")
+        .output()
+        .unwrap();
+    assert!(status.success());
+    assert!(stderr.is_empty());
+    let mut lines = str::from_utf8(&stdout).unwrap().lines();
+    assert_eq!(
+        lines.next(),
+        Some(concat!(
+            "import Immutable from \"https://github.com/quench-lang/quench/raw/",
+            env!("VERGEN_GIT_SHA"),
+            "/src/stdlib.js\";",
+        )),
+    );
+    let canon = fs::read_to_string("examples/hello.js").unwrap();
+    let mut expected = canon.lines();
+    expected.next();
+    assert_eq!(lines.collect::<Vec<_>>(), expected.collect::<Vec<_>>());
 }

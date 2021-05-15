@@ -1,4 +1,4 @@
-import Immutable from "https://deno.land/x/immutable@4.0.0-rc.12/node_modules/immutable/dist/immutable.es.js";
+import Immutable from "https://example.com/quench.js";
 var my_null = null;
 var my_boolean = true;
 var my_other_boolean = false;

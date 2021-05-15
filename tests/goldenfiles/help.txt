@@ -19,11 +19,12 @@ Either way, you should see this output:
     Hello, world!
 
 USAGE:
-    quench <SUBCOMMAND>
+    quench [FLAGS] <SUBCOMMAND>
 
 FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    -h, --help                  Prints help information
+        --stdlib-placeholder    Replaces stdlib import with an example.com placeholder
+    -V, --version               Prints version information
 
 SUBCOMMANDS:
     compile    Compiles a file to JavaScript

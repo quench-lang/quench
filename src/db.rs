@@ -1,4 +1,4 @@
-use crate::{compiler, diagnosis::Diagnostic, estree, parser, syntax, text};
+use crate::{compiler, diagnosis::Diagnostic, estree, opts::Opts, parser, syntax, text};
 use lspower::lsp::{
     DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, Position, SemanticToken, SemanticTokenType,
@@ -70,7 +70,8 @@ pub trait QueryGroup: salsa::Database {
 
     fn ast(&self, key: Url) -> Result<Rc<syntax::File>, im::Vector<Diagnostic>>;
 
-    fn compile(&self, key: Url) -> Result<Arc<estree::Program>, im::Vector<Diagnostic>>;
+    fn compile(&self, key: Url, opts: Opts)
+        -> Result<Arc<estree::Program>, im::Vector<Diagnostic>>;
 }
 
 fn source_index(db: &dyn QueryGroup, key: Url) -> Option<text::Index> {
@@ -395,17 +396,18 @@ fn ast(db: &dyn QueryGroup, key: Url) -> Result<Rc<syntax::File>, im::Vector<Dia
 pub fn compile(
     db: &dyn QueryGroup,
     key: Url,
+    opts: Opts,
 ) -> Result<Arc<estree::Program>, im::Vector<Diagnostic>> {
     let tree = db.ast(key.clone())?;
-    compiler::compile_file(&tree).map(Arc::new)
+    compiler::compile_file(&tree, &opts).map(Arc::new)
 }
 
-pub struct CompileRequest(pub Url);
+pub struct CompileRequest(pub Url, pub Opts);
 
 impl Processable<Result<Arc<estree::Program>, im::Vector<Diagnostic>>> for CompileRequest {
     fn process(self, db: &mut Database) -> Result<Arc<estree::Program>, im::Vector<Diagnostic>> {
-        let CompileRequest(uri) = self;
-        db.compile(uri)
+        let CompileRequest(uri, opts) = self;
+        db.compile(uri, opts)
     }
 }
 
@@ -642,7 +644,14 @@ mod tests {
     #[test]
     fn test_compile_hello_world() {
         let (db, uri) = foo_db(fs::read_to_string("examples/hello.qn").unwrap());
-        let compiled = db.compile(uri).unwrap();
+        let compiled = db
+            .compile(
+                uri,
+                Opts {
+                    stdlib_placeholder: true,
+                },
+            )
+            .unwrap();
         assert_eq!(
             serde_json::to_value(compiled.as_ref()).unwrap(),
             serde_json::json!({
@@ -662,7 +671,7 @@ mod tests {
                         ],
                         "source": {
                             "type": "Literal",
-                            "value": "https://deno.land/x/immutable@4.0.0-rc.12/node_modules/immutable/dist/immutable.es.js"
+                            "value": "https://example.com/quench.js"
                         }
                     },
                     {

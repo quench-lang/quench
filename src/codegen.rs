@@ -1,4 +1,4 @@
-use crate::estree;
+use crate::{deps, estree};
 
 pub struct Codegen {
     js_runtime: deno_core::JsRuntime,
@@ -8,14 +8,7 @@ impl Codegen {
     pub fn new() -> Self {
         let mut js_runtime = deno_core::JsRuntime::new(deno_core::RuntimeOptions::default());
         js_runtime
-            .execute(
-                concat!(
-                    "https://github.com/quench-lang/quench/raw/",
-                    env!("VERGEN_GIT_SHA"),
-                    "/jsdeps/node_modules/astring/dist/astring.min.js",
-                ),
-                include_str!("../jsdeps/node_modules/astring/dist/astring.min.js"),
-            )
+            .execute(deps::ASTRING, deps::ASTRING_SOURCE)
             .unwrap(); // this shouldn't fail since the Astring source is a compile-time constant
         Codegen { js_runtime }
     }

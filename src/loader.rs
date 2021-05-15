@@ -1,4 +1,4 @@
-use crate::deps;
+use crate::{deps, opts::Opts};
 use deno_core::{
     error::AnyError, ModuleLoader, ModuleSource, ModuleSourceFuture, ModuleSpecifier, OpState,
 };
@@ -13,6 +13,7 @@ pub struct LoadError {
 }
 
 pub struct FixedLoader {
+    pub opts: Opts,
     pub main_module: Url,
     pub main_source: String,
 }
@@ -36,17 +37,18 @@ impl ModuleLoader for FixedLoader {
         _is_dyn_import: bool,
     ) -> Pin<Box<ModuleSourceFuture>> {
         let specifier_str = module_specifier.as_str();
-        let result = if specifier_str == deps::IMMUTABLE {
+        let stdlib = self.opts.stdlib();
+        let result = if specifier_str == stdlib {
             Ok(ModuleSource {
-                code: include_str!("../jsdeps/node_modules/immutable/dist/immutable.es.js")
-                    .to_string(),
+                code: deps::STDLIB_SOURCE.to_string(),
                 module_url_specified: module_specifier.to_string(),
-                module_url_found: concat!(
-                    "https://github.com/quench-lang/quench/raw/",
-                    env!("VERGEN_GIT_SHA"),
-                    "/jsdeps/node_modules/immutable/dist/immutable.es.js",
-                )
-                .to_string(),
+                module_url_found: stdlib.to_string(),
+            })
+        } else if specifier_str == deps::IMMUTABLE_SPECIFIED {
+            Ok(ModuleSource {
+                code: deps::IMMUTABLE_SOURCE.to_string(),
+                module_url_specified: module_specifier.to_string(),
+                module_url_found: deps::IMMUTABLE_FOUND.to_string(),
             })
         } else if specifier_str == self.main_module.as_str() {
             Ok(ModuleSource {

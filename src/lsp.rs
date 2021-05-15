@@ -1,5 +1,8 @@
 mod state {
-    use crate::db::{self, EditError};
+    use crate::{
+        db::{self, EditError},
+        opts::Opts,
+    };
     use lspower::lsp::{
         Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
         DidOpenTextDocumentParams, MessageType, Range, SemanticToken,
@@ -94,11 +97,12 @@ mod state {
     }
 
     pub struct State {
+        opts: Opts,
         tx: mpsc::Sender<BoxedRequest>,
     }
 
     impl State {
-        pub fn new() -> Self {
+        pub fn new(opts: Opts) -> Self {
             let (tx, mut rx) = mpsc::channel::<BoxedRequest>(1);
             // we do this in a non-async thread because our db isn't thread-safe
             thread::spawn(move || {
@@ -108,7 +112,7 @@ mod state {
                     request.handle(&mut db);
                 }
             });
-            State { tx }
+            State { opts, tx }
         }
 
         // confusing given that the Processable trait has a different method with the same name
@@ -148,26 +152,31 @@ mod state {
             &self,
             uri: Url,
         ) -> Result<im::Vector<Diagnostic>, AsyncError> {
-            Ok(match self.process(db::CompileRequest(uri.clone())).await? {
-                Ok(_) => im::vector![],
-                Err(diagnostics) => {
-                    let index = self.process(db::IndexRequest(uri)).await?.unwrap();
-                    diagnostics
-                        .into_iter()
-                        .map(|diag| {
-                            let mut lsp_diag = Diagnostic::new_simple(
-                                Range::new(
-                                    index.to_lsp(diag.range.start_point),
-                                    index.to_lsp(diag.range.end_point),
-                                ),
-                                diag.message,
-                            );
-                            lsp_diag.severity = Some(diag.severity);
-                            lsp_diag
-                        })
-                        .collect()
-                }
-            })
+            Ok(
+                match self
+                    .process(db::CompileRequest(uri.clone(), self.opts.clone()))
+                    .await?
+                {
+                    Ok(_) => im::vector![],
+                    Err(diagnostics) => {
+                        let index = self.process(db::IndexRequest(uri)).await?.unwrap();
+                        diagnostics
+                            .into_iter()
+                            .map(|diag| {
+                                let mut lsp_diag = Diagnostic::new_simple(
+                                    Range::new(
+                                        index.to_lsp(diag.range.start_point),
+                                        index.to_lsp(diag.range.end_point),
+                                    ),
+                                    diag.message,
+                                );
+                                lsp_diag.severity = Some(diag.severity);
+                                lsp_diag
+                            })
+                            .collect()
+                    }
+                },
+            )
         }
 
         pub async fn get_semantic_tokens(
@@ -179,7 +188,7 @@ mod state {
     }
 }
 
-use crate::db;
+use crate::{db, opts::Opts};
 use lspower::{
     jsonrpc::{Error, ErrorCode, Result},
     lsp::{
@@ -299,9 +308,8 @@ impl LanguageServer for Backend {
     }
 }
 
-#[tokio::main]
-pub async fn main() {
-    let state = state::State::new();
+pub async fn main(opts: Opts) {
+    let state = state::State::new(opts);
     let (service, messages) = LspService::new(|client| Backend {
         client,
         state: Arc::new(state),

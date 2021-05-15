@@ -1,4 +1,4 @@
-use crate::{deps, diagnosis::Diagnostic, estree as js, syntax as qn};
+use crate::{diagnosis::Diagnostic, estree as js, opts::Opts, syntax as qn};
 use either::Either;
 use lspower::lsp::DiagnosticSeverity;
 use std::fmt::Debug;
@@ -21,7 +21,7 @@ fn gather<T, U: Debug>(
 
 const MAIN: &str = "main";
 
-pub fn compile_file(file: &qn::File) -> Result<js::Program, im::Vector<Diagnostic>> {
+pub fn compile_file(file: &qn::File, opts: &Opts) -> Result<js::Program, im::Vector<Diagnostic>> {
     let mut body = vec![Either::Right(js::ModuleDeclaration::Import {
         specifiers: vec![js::ImportSpecifier::ImportDefault {
             local: js::Identifier {
@@ -29,7 +29,7 @@ pub fn compile_file(file: &qn::File) -> Result<js::Program, im::Vector<Diagnosti
             },
         }],
         source: js::Literal::Literal {
-            value: js::Value::String(String::from(deps::IMMUTABLE)),
+            value: js::Value::String(String::from(opts.stdlib())),
         },
     })];
     body.extend(

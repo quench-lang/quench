@@ -6,11 +6,12 @@ mod diagnosis;
 mod estree;
 mod loader;
 mod lsp;
+mod opts;
 mod parser;
 mod syntax;
 mod text;
 
-use crate::{codegen::Codegen, db::QueryGroup, diagnosis::Diagnostic};
+use crate::{codegen::Codegen, db::QueryGroup, diagnosis::Diagnostic, opts::Opts};
 use std::{env, fs, path::PathBuf, rc::Rc, sync::Arc};
 use structopt::StructOpt;
 use url::Url;
@@ -37,7 +38,17 @@ Either way, you should see this output:
 
 #[derive(StructOpt)]
 #[structopt(about = ABOUT)]
-enum Opt {
+struct Opt {
+    /// Replaces stdlib import with an example.com placeholder
+    #[structopt(long)]
+    stdlib_placeholder: bool,
+
+    #[structopt(subcommand)]
+    cmd: Sub,
+}
+
+#[derive(StructOpt)]
+enum Sub {
     /// Compiles a file to JavaScript
     Compile { file: PathBuf },
 
@@ -54,12 +65,12 @@ enum Opt {
     },
 }
 
-fn compile(file: &PathBuf) -> anyhow::Result<String> {
+fn compile(file: &PathBuf, opts: Opts) -> anyhow::Result<String> {
     let uri = Url::from_file_path(file.canonicalize()?).unwrap();
     let mut db = db::Database::default();
     db.open_document(uri.clone(), fs::read_to_string(file)?)?;
 
-    match db.compile(uri) {
+    match db.compile(uri, opts) {
         Ok(compiled) => {
             if let Some(code) = Codegen::new().gen(compiled.as_ref()) {
                 return Ok(code);
@@ -88,8 +99,8 @@ fn compile(file: &PathBuf) -> anyhow::Result<String> {
 
 const DENO_VERSION: &str = "1.8.3";
 
-fn run(file: PathBuf, args: Vec<String>) -> anyhow::Result<()> {
-    let js = compile(&file)?;
+fn run(file: PathBuf, args: Vec<String>, opts: Opts) -> anyhow::Result<()> {
+    let js = compile(&file, opts.clone())?;
 
     let main_module = deno_core::resolve_path(file.to_str().unwrap()).unwrap();
     let options = deno_runtime::worker::WorkerOptions {
@@ -102,6 +113,7 @@ fn run(file: PathBuf, args: Vec<String>) -> anyhow::Result<()> {
         user_agent: format!("Deno/{}", DENO_VERSION),
         seed: None,
         module_loader: Rc::new(loader::FixedLoader {
+            opts,
             main_module: main_module.clone(),
             main_source: js,
         }),
@@ -133,16 +145,24 @@ fn main() -> anyhow::Result<()> {
     if let Some((file, args)) = env::args().skip(1).collect::<Vec<_>>().split_first() {
         // prevent collision with possible future subcommands
         if file.contains("/") {
-            return run(PathBuf::from(file), args.to_vec());
+            return run(PathBuf::from(file), args.to_vec(), Opts::default());
         }
     }
-    match Opt::from_args() {
-        Opt::Compile { file } => {
-            print!("{}", compile(&file)?);
+    let opt = Opt::from_args();
+    let opts = {
+        let Opt {
+            stdlib_placeholder, ..
+        } = opt;
+        Opts { stdlib_placeholder }
+    };
+    match opt.cmd {
+        Sub::Compile { file } => {
+            print!("{}", compile(&file, opts)?);
             Ok(())
         }
-        Opt::Lsp => Ok(lsp::main()),
-        Opt::Run { file, args } => run(file, args),
+        // https://tokio.rs/tokio/tutorial/hello-tokio
+        Sub::Lsp => Ok(tokio::runtime::Runtime::new()?.block_on(lsp::main(opts))),
+        Sub::Run { file, args } => run(file, args, opts),
     }
 }
 
