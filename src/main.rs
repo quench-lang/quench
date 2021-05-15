@@ -3,6 +3,7 @@ mod compiler;
 mod db;
 mod diagnosis;
 mod estree;
+mod loader;
 mod lsp;
 mod parser;
 mod syntax;
@@ -52,7 +53,7 @@ enum Opt {
     },
 }
 
-fn compile(file: PathBuf) -> anyhow::Result<String> {
+fn compile(file: &PathBuf) -> anyhow::Result<String> {
     let uri = Url::from_file_path(file.canonicalize()?).unwrap();
     let mut db = db::Database::default();
     db.open_document(uri.clone(), slurp::read_all_to_string(file)?)?;
@@ -87,8 +88,9 @@ fn compile(file: PathBuf) -> anyhow::Result<String> {
 const DENO_VERSION: &str = "1.8.3";
 
 fn run(file: PathBuf, args: Vec<String>) -> anyhow::Result<()> {
-    let js = compile(file)?;
+    let js = compile(&file)?;
 
+    let main_module = deno_core::resolve_path(file.to_str().unwrap()).unwrap();
     let options = deno_runtime::worker::WorkerOptions {
         apply_source_maps: false,
         args,
@@ -98,7 +100,10 @@ fn run(file: PathBuf, args: Vec<String>) -> anyhow::Result<()> {
         // https://github.com/denoland/deno/blob/v1.8.3/cli/version.rs
         user_agent: format!("Deno/{}", DENO_VERSION),
         seed: None,
-        module_loader: Rc::new(deno_core::FsModuleLoader),
+        module_loader: Rc::new(loader::FixedLoader {
+            main_module: main_module.clone(),
+            main_source: js,
+        }),
         create_web_worker_cb: Arc::new(|_| todo!("Quench does not yet support web workers")),
         js_error_create_fn: None,
         attach_inspector: false,
@@ -112,16 +117,14 @@ fn run(file: PathBuf, args: Vec<String>) -> anyhow::Result<()> {
         get_error_class_fn: None,
         location: None,
     };
-    // https://github.com/denoland/deno/blob/v1.8.3/cli/main.rs#L482
-    let main_module = deno_core::resolve_path("$deno$eval.js").unwrap();
     let mut worker = deno_runtime::worker::MainWorker::from_options(
-        main_module,
+        main_module.clone(),
         deno_runtime::permissions::Permissions::allow_all(),
         &options,
     );
     worker.bootstrap(&options);
 
-    worker.execute(&js)
+    futures::executor::block_on(worker.execute_module(&main_module))
 }
 
 fn main() -> anyhow::Result<()> {
@@ -134,7 +137,7 @@ fn main() -> anyhow::Result<()> {
     }
     match Opt::from_args() {
         Opt::Compile { file } => {
-            print!("{}", compile(file)?);
+            print!("{}", compile(&file)?);
             Ok(())
         }
         Opt::Lsp => Ok(lsp::main()),

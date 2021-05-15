@@ -22,10 +22,23 @@ fn gather<T, U: Debug>(
 const MAIN: &str = "main";
 
 pub fn compile_file(file: &qn::File) -> Result<js::Program, im::Vector<Diagnostic>> {
-    let mut body: Vec<_> = gather(compile_declaration, file.decls.iter())?
-        .into_iter()
-        .map(Either::Left)
-        .collect();
+    let mut body = vec![Either::Right(js::ModuleDeclaration::Import {
+        specifiers: vec![js::ImportSpecifier::ImportNamespace {
+            local: js::Identifier {
+                name: String::from("Immutable"),
+            },
+        }],
+        source: js::Literal::Literal {
+            value: js::Value::String(String::from(
+                "https://deno.land/x/immutable@4.0.0-rc.12-deno/mod.ts",
+            )),
+        },
+    })];
+    body.extend(
+        gather(compile_declaration, file.decls.iter())?
+            .into_iter()
+            .map(Either::Left),
+    );
     if file.decls.iter().any(|decl| decl.name.name == MAIN) {
         body.push(Either::Left(js::Statement::Expression {
             expression: Box::new(js::Expression::Call {
@@ -117,17 +130,34 @@ fn compile_literal(lit: &qn::Lit) -> Result<js::Expression, im::Vector<Diagnosti
                 value: js::Value::String(name.clone()),
             })],
         },
-        qn::Lit::List(qn::List { items, .. }) => js::Expression::Array {
-            elements: gather(compile_expression, items.iter())?
-                .into_iter()
-                .map(Either::Left)
-                .map(Some)
-                .collect(),
+        qn::Lit::List(qn::List { items, .. }) => js::Expression::Call {
+            callee: Either::Left(Box::new(js::Expression::Member {
+                object: Either::Left(Box::new(js::Expression::Identifier {
+                    name: String::from("Immutable"),
+                })),
+                property: Box::new(js::Expression::Identifier {
+                    name: String::from("List"),
+                }),
+                computed: false,
+            })),
+            arguments: vec![Either::Left(js::Expression::Array {
+                elements: gather(compile_expression, items.iter())?
+                    .into_iter()
+                    .map(Either::Left)
+                    .map(Some)
+                    .collect(),
+            })],
         },
-        qn::Lit::Map(qn::Map { entries, .. }) => js::Expression::New {
-            callee: Box::new(js::Expression::Identifier {
-                name: String::from("Map"),
-            }),
+        qn::Lit::Map(qn::Map { entries, .. }) => js::Expression::Call {
+            callee: Either::Left(Box::new(js::Expression::Member {
+                object: Either::Left(Box::new(js::Expression::Identifier {
+                    name: String::from("Immutable"),
+                })),
+                property: Box::new(js::Expression::Identifier {
+                    name: String::from("Map"),
+                }),
+                computed: false,
+            })),
             arguments: vec![Either::Left(js::Expression::Array {
                 elements: gather(compile_entry, entries.iter())?
                     .into_iter()

@@ -12,9 +12,9 @@ impl Codegen {
                 concat!(
                     "https://github.com/quench-lang/quench/raw/",
                     env!("VERGEN_GIT_SHA"),
-                    "/astring-quench/node_modules/astring/dist/astring.min.js",
+                    "/jsdeps/node_modules/astring/dist/astring.min.js",
                 ),
-                include_str!("../astring-quench/node_modules/astring/dist/astring.min.js"),
+                include_str!("../jsdeps/node_modules/astring/dist/astring.min.js"),
             )
             .unwrap(); // this shouldn't fail since the Astring source is a compile-time constant
         Codegen { js_runtime }

@@ -14,7 +14,17 @@ complicated:
     undefined
     👻 ba # not a comment
       z 🙃
-    [ "foo", "bar", "baz" ]
+    List {
+      size: 3,
+      _origin: 0,
+      _capacity: 3,
+      _level: 5,
+      _root: null,
+      _tail: VNode { array: [ "foo", "bar", "baz" ], ownerID: undefined },
+      __ownerID: undefined,
+      __hash: undefined,
+      __altered: false
+    }
 
 data:
   status: 0

@@ -1,8 +1,16 @@
 # https://stackoverflow.com/a/25475163
 /node_modules/*
+
 !/node_modules/astring/
 /node_modules/astring/*
 !/node_modules/astring/LICENSE
 !/node_modules/astring/dist/
 /node_modules/astring/dist/*
 !/node_modules/astring/dist/astring.min.js
+
+!/node_modules/immutable/
+/node_modules/immutable/*
+!/node_modules/immutable/LICENSE
+!/node_modules/immutable/dist/
+/node_modules/immutable/dist/*
+!/node_modules/immutable/dist/immutable.es.js

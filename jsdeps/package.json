@@ -1,0 +1,9 @@
+{
+  "name": "quench-deps",
+  "version": "0.3.0",
+  "description": "",
+  "dependencies": {
+    "astring": "^1.7.0",
+    "immutable": "^4.0.0-rc.12"
+  }
+}
