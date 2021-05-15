@@ -1,4 +1,4 @@
-use crate::{diagnosis::Diagnostic, estree as js, syntax as qn};
+use crate::{deps, diagnosis::Diagnostic, estree as js, syntax as qn};
 use either::Either;
 use lspower::lsp::DiagnosticSeverity;
 use std::fmt::Debug;
@@ -29,9 +29,7 @@ pub fn compile_file(file: &qn::File) -> Result<js::Program, im::Vector<Diagnosti
             },
         }],
         source: js::Literal::Literal {
-            value: js::Value::String(String::from(
-                "https://deno.land/x/immutable@4.0.0-rc.12-deno/mod.ts",
-            )),
+            value: js::Value::String(String::from(deps::IMMUTABLE)),
         },
     })];
     body.extend(

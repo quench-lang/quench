@@ -1,6 +1,7 @@
 mod codegen;
 mod compiler;
 mod db;
+mod deps;
 mod diagnosis;
 mod estree;
 mod loader;

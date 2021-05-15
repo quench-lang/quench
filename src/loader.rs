@@ -1,3 +1,4 @@
+use crate::deps;
 use deno_core::{
     error::AnyError, ModuleLoader, ModuleSource, ModuleSourceFuture, ModuleSpecifier, OpState,
 };
@@ -35,7 +36,7 @@ impl ModuleLoader for FixedLoader {
         _is_dyn_import: bool,
     ) -> Pin<Box<ModuleSourceFuture>> {
         let specifier_str = module_specifier.as_str();
-        let result = if specifier_str == "https://deno.land/x/immutable@4.0.0-rc.12-deno/mod.ts" {
+        let result = if specifier_str == deps::IMMUTABLE {
             Ok(ModuleSource {
                 code: include_str!("../jsdeps/node_modules/immutable/dist/immutable.es.js")
                     .to_string(),
