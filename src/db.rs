@@ -684,7 +684,7 @@ mod tests {
                                     "name": "$main"
                                 },
                                 "init": {
-                                    "type": "FunctionExpression",
+                                    "type": "ArrowFunctionExpression",
                                     "id": null,
                                     "params": [
                                         {
@@ -693,35 +693,28 @@ mod tests {
                                         }
                                     ],
                                     "body": {
-                                        "type": "BlockStatement",
-                                        "body": [
+                                        "type": "CallExpression",
+                                        "callee": {
+                                            "type": "MemberExpression",
+                                            "object": {
+                                                "type": "Identifier",
+                                                "name": "console"
+                                            },
+                                            "property": {
+                                                "type": "Identifier",
+                                                "name": "log"
+                                            },
+                                            "computed": false,
+                                        },
+                                        "arguments": [
                                             {
-                                                "type": "ReturnStatement",
-                                                "argument": {
-                                                    "type": "CallExpression",
-                                                    "callee": {
-                                                        "type": "MemberExpression",
-                                                        "object": {
-                                                            "type": "Identifier",
-                                                            "name": "console"
-                                                        },
-                                                        "property": {
-                                                            "type": "Identifier",
-                                                            "name": "log"
-                                                        },
-                                                        "computed": false,
-                                                    },
-                                                    "arguments": [
-                                                        {
-                                                            "type": "Literal",
-                                                            "value": "Hello, world!",
-                                                        }
-                                                    ],
-                                                }
+                                                "type": "Literal",
+                                                "value": "Hello, world!",
                                             }
-                                        ]
+                                        ],
                                     },
-                                    "generator": false
+                                    "generator": false,
+                                    "expression": true
                                 }
                             }
                         ],

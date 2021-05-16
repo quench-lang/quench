@@ -81,17 +81,14 @@ fn compile_expression(expr: &qn::Expr) -> Result<js::Expression, im::Vector<Diag
             callee: Either::Left(Box::new(compile_expression(func)?)),
             arguments: vec![Either::Left(compile_expression(arg)?)],
         }),
-        qn::Expr::Func(qn::Func { param, body, .. }) => Ok(js::Expression::Function {
+        qn::Expr::Func(qn::Func { param, body, .. }) => Ok(js::Expression::ArrowFunction {
             id: None,
             params: vec![js::Pattern::Identifier {
                 name: mangle(&param.name),
             }],
-            body: js::FunctionBody {
-                body: vec![Either::Right(js::Statement::Return {
-                    argument: Some(Box::new(compile_expression(body)?)),
-                })],
-            },
+            body: Either::Right(Box::new(compile_expression(body)?)),
             generator: false,
+            expression: true,
         }),
     }
 }
@@ -204,10 +201,10 @@ fn compile_identifier(id: &qn::Id) -> Result<js::Expression, im::Vector<Diagnost
 fn compile_block(block: &qn::Block) -> Result<js::Expression, im::Vector<Diagnostic>> {
     let qn::Block { stmts, expr, .. } = block;
     Ok(js::Expression::Call {
-        callee: Either::Left(Box::new(js::Expression::Function {
+        callee: Either::Left(Box::new(js::Expression::ArrowFunction {
             id: None,
             params: vec![],
-            body: js::FunctionBody {
+            body: Either::Left(js::FunctionBody {
                 body: {
                     let mut body = gather(compile_statement, stmts.iter())?;
                     if let Some(expr) = expr {
@@ -217,8 +214,9 @@ fn compile_block(block: &qn::Block) -> Result<js::Expression, im::Vector<Diagnos
                     }
                     body.into_iter().map(Either::Right).collect()
                 },
-            },
+            }),
             generator: false,
+            expression: false,
         })),
         arguments: vec![],
     })

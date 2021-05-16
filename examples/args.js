@@ -1,5 +1,3 @@
 import Immutable from "https://example.com/quench.js";
-const $main = function ($_) {
-  return console.log(Deno.args);
-};
+const $main = $_ => console.log(Deno.args);
 $main();
