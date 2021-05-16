@@ -29,8 +29,16 @@ main := _ => {
   print my_int;
   print "";
 
+  print "my_list[3]:";
+  print my_list[3];
+  print "";
+
   print "my_map.foo:";
   print my_map.foo;
+  print "";
+
+  print "my_map deep item:";
+  print my_map["bar"][2];
   print "";
 
   print "my_nested_map.cat.dog:";

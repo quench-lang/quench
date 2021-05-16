@@ -93,6 +93,16 @@ fn compile_expression(expr: &qn::Expr) -> Result<js::Expression, im::Vector<Diag
             generator: false,
             expression: true,
         }),
+        qn::Expr::Index(qn::Index { coll, key, .. }) => Ok(js::Expression::Call {
+            callee: Either::Left(Box::new(js::Expression::Member {
+                object: Either::Left(Box::new(compile_expression(coll)?)),
+                property: Box::new(js::Expression::Identifier {
+                    name: String::from("get"),
+                }),
+                computed: false,
+            })),
+            arguments: vec![Either::Left(compile_expression(key)?)],
+        }),
         qn::Expr::Field(qn::Field { map, key, .. }) => Ok(js::Expression::Call {
             callee: Either::Left(Box::new(js::Expression::Member {
                 object: Either::Left(Box::new(compile_expression(map)?)),
@@ -114,13 +124,8 @@ fn compile_literal(lit: &qn::Lit) -> Result<js::Expression, im::Vector<Diagnosti
         qn::Lit::Bool(qn::Bool { val, .. }) => Ok(js::Expression::Literal {
             value: js::Value::Boolean(*val),
         }),
-        qn::Lit::Int(qn::Int { val, .. }) => Ok(js::Expression::Call {
-            callee: Either::Left(Box::new(js::Expression::Identifier {
-                name: String::from("BigInt"),
-            })),
-            arguments: vec![Either::Left(js::Expression::Literal {
-                value: js::Value::String(val.to_string()),
-            })],
+        qn::Lit::Int(qn::Int { val, .. }) => Ok(js::Expression::Literal {
+            value: js::Value::Number(f64::from(*val)),
         }),
         qn::Lit::Str(qn::Str { val, .. }) => Ok(js::Expression::Literal {
             value: js::Value::String(val.clone()),

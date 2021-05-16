@@ -30,10 +30,16 @@ data:
   status: 0
   out: |
     my_int:
-    4n
+    4
+    
+    my_list[3]:
+    false
     
     my_map.foo:
-    42n
+    42
+    
+    my_map deep item:
+    10
     
     my_nested_map.cat.dog:
     bird
@@ -48,6 +54,12 @@ hello:
   status: 0
   out: |
     Hello, world!
+
+numbers:
+  compile: |
+    0:5 to 0:22 Error: number too large to fit in target type
+    1:5 to 1:19 Error: number too small to fit in target type
+    Error: Failed to compile.
 
 pure:
   status: 0

@@ -32,6 +32,10 @@
             "named": true
           },
           {
+            "type": "index",
+            "named": true
+          },
+          {
             "type": "integer",
             "named": true
           },
@@ -115,6 +119,10 @@
             "named": true
           },
           {
+            "type": "index",
+            "named": true
+          },
+          {
             "type": "integer",
             "named": true
           },
@@ -170,6 +178,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "index",
             "named": true
           },
           {
@@ -247,6 +259,10 @@
             "named": true
           },
           {
+            "type": "index",
+            "named": true
+          },
+          {
             "type": "integer",
             "named": true
           },
@@ -311,6 +327,10 @@
             "named": true
           },
           {
+            "type": "index",
+            "named": true
+          },
+          {
             "type": "integer",
             "named": true
           },
@@ -366,6 +386,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "index",
             "named": true
           },
           {
@@ -430,6 +454,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "index",
             "named": true
           },
           {
@@ -507,6 +535,10 @@
             "named": true
           },
           {
+            "type": "index",
+            "named": true
+          },
+          {
             "type": "integer",
             "named": true
           },
@@ -571,6 +603,10 @@
             "named": true
           },
           {
+            "type": "index",
+            "named": true
+          },
+          {
             "type": "integer",
             "named": true
           },
@@ -613,6 +649,136 @@
     }
   },
   {
+    "type": "index",
+    "named": true,
+    "fields": {
+      "collection": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "call",
+            "named": true
+          },
+          {
+            "type": "field",
+            "named": true
+          },
+          {
+            "type": "function",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "index",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "list",
+            "named": true
+          },
+          {
+            "type": "map",
+            "named": true
+          },
+          {
+            "type": "null",
+            "named": false
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "symbol",
+            "named": true
+          }
+        ]
+      },
+      "key": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "call",
+            "named": true
+          },
+          {
+            "type": "field",
+            "named": true
+          },
+          {
+            "type": "function",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "index",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "list",
+            "named": true
+          },
+          {
+            "type": "map",
+            "named": true
+          },
+          {
+            "type": "null",
+            "named": false
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "symbol",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "list",
     "named": true,
     "fields": {
@@ -642,6 +808,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "index",
             "named": true
           },
           {
@@ -722,6 +892,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "index",
             "named": true
           },
           {

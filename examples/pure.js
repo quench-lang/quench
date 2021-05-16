@@ -1,2 +1,2 @@
 import Immutable from "https://example.com/quench.js";
-const $x = BigInt("7");
+const $x = 7;

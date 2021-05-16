@@ -26,6 +26,7 @@ module.exports = grammar({
       $.block,
       $.call,
       $.function,
+      $.index,
       $.field,
     ),
 
@@ -89,7 +90,14 @@ module.exports = grammar({
       field('body', $._expression),
     ),
 
-    field: $ => prec(2, seq(
+    index: $ => prec(2, seq(
+      field('collection', $._expression),
+      '[',
+      field('key', $._expression),
+      ']',
+    )),
+
+    field: $ => prec(3, seq(
       field('map', $._expression),
       field('key', $.symbol),
     )),
