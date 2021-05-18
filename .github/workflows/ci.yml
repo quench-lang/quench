@@ -81,8 +81,8 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - name: Set Rust toolchain
         run: rustup default ${{ matrix.rust }}
-      - name: Get dependencies from cache
-        uses: Swatinem/rust-cache@v1
+      # - name: Get dependencies from cache
+      #   uses: Swatinem/rust-cache@v1
       - name: Run tests
         run: cargo test
       - name: Install
