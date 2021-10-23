@@ -74,10 +74,6 @@ If you want to modify the grammar, be sure to follow the instructions in the
 
 This repository is released under the [MIT License](/LICENSE).
 
-_I am providing code in the repository to you under an open source license.
-Because this is my personal repository, the license you receive to my code is
-from me and not my employer (Facebook)._
-
 [ci]: https://github.com/quench-lang/quench/actions/workflows/ci.yml/badge.svg
 [ci link]: https://github.com/quench-lang/quench/actions/workflows/ci.yml
 [crates.io]: https://img.shields.io/crates/v/quench
