@@ -130,6 +130,3 @@ jobs:
           mv $GITHUB_WORKSPACE/quench "$DIR"
       - name: Run tests
         run: xvfb-run -a npm test
-      - name: Ensure empty Git status
-        run: |
-          "$GITHUB_WORKSPACE/.github/report_git_status.sh"
