@@ -5,13 +5,12 @@
   "type": "module",
   "scripts": {
     "build": "vite build && node build.js",
-    "serve": "http-server dist/"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@quench-lang/core": "0.3.0"
   },
   "devDependencies": {
-    "http-server": "^14",
     "vite": "^2"
   }
 }

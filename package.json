@@ -7,7 +7,7 @@
     "build": "lerna run --stream build",
     "cli": "cd packages/core/ && yarn main",
     "format": "prettier --write .",
-    "serve": "cd packages/site/ && yarn serve"
+    "preview": "cd packages/site/ && yarn preview"
   },
   "devDependencies": {
     "lerna": "^5",

@@ -19,7 +19,7 @@ Clone this repo, `cd` into it, then:
 ```sh
 yarn
 yarn build
-yarn serve
+yarn preview
 ```
 
 ## License
