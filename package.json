@@ -5,7 +5,7 @@
   ],
   "scripts": {
     "build": "lerna run --stream build",
-    "cli": "cd packages/core/ && yarn main",
+    "cli": "cd packages/cli/ && yarn start",
     "format": "prettier --write .",
     "preview": "cd packages/site/ && yarn preview"
   },

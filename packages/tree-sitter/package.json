@@ -4,12 +4,15 @@
   "license": "MIT",
   "main": "bindings/node",
   "scripts": {
-    "build": "tree-sitter generate && tree-sitter build-wasm"
+    "build": "tree-sitter generate && yarn build:node && yarn build:web",
+    "build:node": "node-gyp configure && node-gyp build",
+    "build:web": "tree-sitter build-wasm"
   },
   "dependencies": {
     "nan": "^2"
   },
   "devDependencies": {
+    "node-gyp": "^9",
     "tree-sitter-cli": "^0.20"
   }
 }

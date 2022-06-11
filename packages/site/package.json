@@ -8,7 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@quench-lang/core": "0.3.0"
+    "@quench-lang/core": "0.3.0",
+    "@quench-lang/tree-sitter": "0.3.0",
+    "web-tree-sitter": "^0.20"
   },
   "devDependencies": {
     "vite": "^2"

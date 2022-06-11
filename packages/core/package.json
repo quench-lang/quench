@@ -3,13 +3,5 @@
   "version": "0.3.0",
   "license": "MIT",
   "type": "module",
-  "exports": "./index.js",
-  "scripts": {
-    "build": "node build.js",
-    "main": "node main.js"
-  },
-  "dependencies": {
-    "@quench-lang/tree-sitter": "0.3.0",
-    "web-tree-sitter": "^0.20"
-  }
+  "exports": "./index.js"
 }
