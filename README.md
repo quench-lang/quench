@@ -25,7 +25,7 @@ yarn
 
 ```sh
 yarn build:tree-sitter
-yarn cli
+yarn cli packages/examples/hello.qn
 ```
 
 ### Site (development)

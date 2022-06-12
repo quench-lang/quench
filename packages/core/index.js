@@ -1,5 +1,4 @@
-export const main = async (parser) => {
-  const sourceCode = 'main := _ => print "Hello, world!";';
+export const main = async (parser, sourceCode) => {
   const tree = parser.parse(sourceCode);
   return tree.rootNode.toString();
 };

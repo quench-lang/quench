@@ -3,9 +3,6 @@
   "version": "0.3.0",
   "license": "MIT",
   "type": "module",
-  "scripts": {
-    "start": "node index.js"
-  },
   "dependencies": {
     "@quench-lang/core": "0.3.0",
     "@quench-lang/tree-sitter": "0.3.0",

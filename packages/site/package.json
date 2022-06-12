@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "@quench-lang/core": "0.3.0",
+    "@quench-lang/examples": "0.3.0",
     "@quench-lang/tree-sitter": "0.3.0",
+    "monaco-editor": "0.33",
     "web-tree-sitter": "^0.20"
   },
   "devDependencies": {
-    "vite": "^2"
+    "vite": "^2",
+    "vite-plugin-monaco-editor": "^1"
   }
 }

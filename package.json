@@ -6,7 +6,7 @@
   "scripts": {
     "build": "lerna run --stream build",
     "build:tree-sitter": "cd packages/tree-sitter/ && yarn build",
-    "cli": "cd packages/cli/ && yarn start",
+    "cli": "node packages/cli/index.js",
     "format": "prettier --write .",
     "preview": "cd packages/site/ && yarn preview",
     "site": "cd packages/site/ && yarn dev"
