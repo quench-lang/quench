@@ -1,0 +1,11 @@
+{
+  "name": "@quench-lang/lsp",
+  "version": "0.3.0",
+  "license": "MIT",
+  "type": "module",
+  "exports": "./index.js",
+  "dependencies": {
+    "@quench-lang/core": "0.3.0",
+    "vscode-languageserver": "^8"
+  }
+}

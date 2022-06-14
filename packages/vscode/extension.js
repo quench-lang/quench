@@ -1,6 +1,6 @@
 import language from "@quench-lang/tree-sitter/tree-sitter-quench.wasm";
 import * as path from "path";
-import { LanguageClient } from "vscode-languageclient/node";
+import { LanguageClient } from "vscode-languageclient";
 
 let client;
 

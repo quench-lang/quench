@@ -56,10 +56,9 @@
     "vscode:prepublish": "yarn build"
   },
   "dependencies": {
-    "@quench-lang/core": "0.3.0",
+    "@quench-lang/lsp": "0.3.0",
     "@quench-lang/tree-sitter": "0.3.0",
     "vscode-languageclient": "^8",
-    "vscode-languageserver": "^8",
     "web-tree-sitter": "^0.20"
   },
   "devDependencies": {
