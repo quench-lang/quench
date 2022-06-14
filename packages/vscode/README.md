@@ -6,6 +6,4 @@ whose name ends with `.qn`.
 
 [lsp]: https://microsoft.github.io/language-server-protocol/
 [marketplace]: https://marketplace.visualstudio.com/items?itemName=quench.quench
-[node]: https://github.com/nvm-sh/nvm#install--update-script
 [quench]: https://github.com/quench-lang/quench
-[vs code]: https://code.visualstudio.com/download
