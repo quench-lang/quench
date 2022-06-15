@@ -4,7 +4,7 @@
   "license": "MIT",
   "main": "bindings/node",
   "scripts": {
-    "build": "tree-sitter generate && yarn build:node && yarn build:web",
+    "build": "tree-sitter generate && npm run build:node && npm run build:web",
     "build:node": "node-gyp configure && node-gyp build",
     "build:web": "tree-sitter build-wasm"
   },

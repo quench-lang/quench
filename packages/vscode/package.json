@@ -49,11 +49,11 @@
     }
   },
   "scripts": {
-    "build": "yarn build:client && yarn build:server",
+    "build": "npm run build:client && npm run build:server",
     "build:client": "esbuild ./extension.js --bundle --loader:.wasm=file --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "build:server": "node build.js && esbuild ./server.js --bundle --outfile=dist/server.js --format=cjs --platform=node",
-    "package": "vsce package --yarn",
-    "vscode:prepublish": "yarn build"
+    "package": "vsce package",
+    "vscode:prepublish": "npm run build"
   },
   "dependencies": {
     "@moss-lang/lsp": "0.3.0",
