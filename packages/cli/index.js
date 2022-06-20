@@ -10,4 +10,4 @@ const moss = new Moss(parser);
 const [, , filename] = process.argv;
 const uri = url.pathToFileURL(filename);
 moss.setText(uri, await fs.readFile(filename, "utf8"));
-console.log(moss.getTreeString(uri));
+console.log(moss.compile(uri));

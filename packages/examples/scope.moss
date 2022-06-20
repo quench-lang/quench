@@ -1,0 +1,10 @@
+main := _ => {
+  x := "foo";
+  y := "baz";
+  {
+    x := "bar";
+    print x;
+    print y;
+  };
+  print x;
+};

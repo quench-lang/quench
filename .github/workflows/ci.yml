@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/setup
       - run: npm run build
-      - run: npm run cli packages/examples/hello.moss
+      - run: ./run.sh packages/examples/hello.moss
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
         with:

@@ -8,12 +8,12 @@
     "build:site": "npm run build --workspace=@moss-lang/site",
     "build:tree-sitter": "npm run build --workspace=tree-sitter-moss",
     "build:vscode": "npm run build --workspace=moss",
-    "cli": "node packages/cli/index.js",
     "format": "prettier --write .",
     "preview": "npm run preview --workspace=@moss-lang/site",
     "site": "npm run dev --workspace=@moss-lang/site"
   },
   "devDependencies": {
+    "immutable": "^4",
     "prettier": "^2"
   }
 }

@@ -20,7 +20,7 @@ npm i
 
 ```sh
 npm run build:tree-sitter
-npm run cli packages/examples/hello.moss
+./run.sh packages/examples/hello.moss
 ```
 
 ## Site
