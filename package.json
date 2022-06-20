@@ -4,13 +4,13 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build:tree-sitter && npm run build:vscode && npm run build:site",
-    "build:site": "npm run build --workspace=@moss-lang/site",
-    "build:tree-sitter": "npm run build --workspace=tree-sitter-moss",
-    "build:vscode": "npm run build --workspace=moss",
+    "build": "yarn build:tree-sitter && yarn build:vscode && yarn build:site",
+    "build:site": "yarn workspace @moss-lang/site build",
+    "build:tree-sitter": "yarn workspace tree-sitter-moss build",
+    "build:vscode": "yarn workspace moss build",
     "format": "prettier --write .",
-    "preview": "npm run preview --workspace=@moss-lang/site",
-    "site": "npm run dev --workspace=@moss-lang/site"
+    "preview": "yarn workspace @moss-lang/site preview",
+    "site": "yarn workspace @moss-lang/site dev"
   },
   "devDependencies": {
     "immutable": "^4",

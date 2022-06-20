@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/setup
-      - run: npm run build
+      - run: yarn build
       - run: ./run.sh packages/examples/hello.moss
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
@@ -28,5 +28,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/setup
-      - run: npm run format
+      - run: yarn format
       - run: .github/report_git_status.sh

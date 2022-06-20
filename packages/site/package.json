@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build:public && vite --port=3001",
-    "build": "npm run build:public && vite build",
+    "dev": "yarn build:public && vite --port=3001",
+    "build": "yarn build:public && vite build",
     "build:public": "node build.js",
     "preview": "vite preview"
   },
