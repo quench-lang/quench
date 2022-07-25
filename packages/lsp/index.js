@@ -1,4 +1,3 @@
-import { Moss } from "@moss-lang/core";
 import {
   createConnection,
   ProposedFeatures,
@@ -7,13 +6,13 @@ import {
   SemanticTokenTypes,
 } from "vscode-languageserver";
 
-export const startServer = ({ reader, writer, makeParser }) => {
+export const startServer = ({ reader, writer, makeMoss }) => {
   const connection = createConnection(ProposedFeatures.all, reader, writer);
 
   let moss;
 
   connection.onInitialize(async () => {
-    moss = new Moss(await makeParser());
+    moss = await makeMoss();
 
     return {
       capabilities: {

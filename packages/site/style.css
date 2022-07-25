@@ -3,7 +3,7 @@ html {
 }
 
 /* https://github.com/TypeFox/monaco-languageclient/blob/v1.0.1/packages/examples/client/index.html */
-#container {
-  width: 800px;
-  height: 600px;
+.container {
+  width: 600px;
+  height: 300px;
 }

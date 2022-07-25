@@ -1,3 +1,4 @@
+import { webMoss } from "@moss-lang/core";
 import helloExample from "@moss-lang/examples/hello.moss?raw";
 import * as lsp from "@moss-lang/lsp";
 import * as monaco from "monaco-editor-core";
@@ -11,19 +12,24 @@ import {
 import language from "tree-sitter-moss/tree-sitter-moss.wasm?url";
 import Parser from "web-tree-sitter";
 
-// https://github.com/TypeFox/monaco-languageclient/blob/v1.0.1/packages/examples/client/src/client.ts
-
 monaco.languages.register({ id: "moss", extensions: [".moss"] });
 
-monaco.editor.create(document.getElementById("container"), {
+const defaultOptions = { theme: "vs-dark" };
+
+const source = monaco.editor.create(document.getElementById("source"), {
+  ...defaultOptions,
   model: monaco.editor.createModel(
     helloExample,
     "moss",
     monaco.Uri.parse("inmemory://model.moss")
   ),
   "semanticHighlighting.enabled": true,
-  theme: "vs-dark",
 });
+
+const target = monaco.editor.create(
+  document.getElementById("target"),
+  defaultOptions
+);
 
 MonacoServices.install(monaco);
 
@@ -64,17 +70,6 @@ const makeChannel = () => {
 const channel1 = makeChannel();
 const channel2 = makeChannel();
 
-lsp.startServer({
-  makeParser: async () => {
-    await Parser.init();
-    const parser = new Parser();
-    parser.setLanguage(await Parser.Language.load(language));
-    return parser;
-  },
-  reader: channel1.reader,
-  writer: channel2.writer,
-});
-
 new MonacoLanguageClient({
   name: "Moss Language Client",
   clientOptions: {
@@ -90,3 +85,24 @@ new MonacoLanguageClient({
     get: async () => ({ reader: channel2.reader, writer: channel1.writer }),
   },
 }).start();
+
+const mossPromise = new Promise((resolve) => {
+  lsp.startServer({
+    makeMoss: async () => {
+      await Parser.init();
+      const parser = new Parser();
+      parser.setLanguage(await Parser.Language.load(language));
+      const moss = webMoss(parser);
+      resolve(moss);
+      return moss;
+    },
+    reader: channel1.reader,
+    writer: channel2.writer,
+  });
+});
+
+document.getElementById("compile").onclick = async () => {
+  const moss = await mossPromise;
+  moss.setText("", source.getValue());
+  target.setValue(moss.compile(""));
+};
