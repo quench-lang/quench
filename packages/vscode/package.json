@@ -56,6 +56,7 @@
     "vscode:prepublish": "yarn build"
   },
   "dependencies": {
+    "@moss-lang/core": "0.3.0",
     "@moss-lang/lsp": "0.3.0",
     "tree-sitter-moss": "0.3.0",
     "vscode-languageclient": "^8",
