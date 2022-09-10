@@ -4,9 +4,8 @@
   "license": "MIT",
   "main": "bindings/node",
   "scripts": {
-    "build-node": "node-gyp build",
+    "build-node": "node-gyp configure && node-gyp build",
     "build-web": "tree-sitter build-wasm",
-    "gyp-conf": "node-gyp configure",
     "ts-gen": "tree-sitter generate"
   },
   "dependencies": {

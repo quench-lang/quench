@@ -1,11 +1,6 @@
 /binding.gyp
 /bindings/
-/build/binding.Makefile
-/build/config.gypi
-/build/gyp-mac-tool
-/build/Makefile
-/build/Release/
-/build/tree_sitter_*_binding.target.mk
+/build/
 /Cargo.toml
 /src/
 tree-sitter-*.wasm

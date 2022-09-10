@@ -16,22 +16,12 @@
     "@moss-lang/site#preview": { "cache": false, "dependsOn": ["build-web"] },
 
     "tree-sitter-moss#build-node": {
-      "dependsOn": ["gyp-conf"],
-      "outputs": ["build/Release/**"]
+      "dependsOn": ["ts-gen"],
+      "outputs": ["build/**"]
     },
     "tree-sitter-moss#build-web": {
       "dependsOn": ["ts-gen"],
       "outputs": ["tree-sitter-*.wasm"]
-    },
-    "tree-sitter-moss#gyp-conf": {
-      "dependsOn": ["ts-gen"],
-      "outputs": [
-        "build/binding.Makefile",
-        "build/config.gypi",
-        "build/gyp-mac-tool",
-        "build/Makefile",
-        "build/tree_sitter_*_binding.target.mk"
-      ]
     },
     "tree-sitter-moss#ts-gen": {
       "outputs": ["Cargo.toml", "binding.gyp", "bindings/**", "src/**"]
