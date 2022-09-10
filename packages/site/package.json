@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "yarn build:public && vite --port=3001",
-    "build": "yarn build:public && vite build",
-    "build:public": "node build.js",
+    "dev": "vite --port=3001",
+    "build-web": "vite build",
+    "grab-ts-wasm": "node build.js",
     "preview": "vite preview"
   },
   "dependencies": {

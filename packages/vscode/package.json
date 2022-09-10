@@ -49,9 +49,9 @@
     }
   },
   "scripts": {
-    "build": "yarn build:client && yarn build:server",
-    "build:client": "esbuild ./extension.js --bundle --loader:.wasm=file --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
-    "build:server": "node build.js && esbuild ./server.js --bundle --outfile=dist/server.js --format=cjs --platform=node",
+    "build-client": "esbuild ./extension.js --bundle --loader:.wasm=file --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "build-server": "esbuild ./server.js --bundle --outfile=dist/server.js --format=cjs --platform=node",
+    "grab-ts-wasm": "node build.js",
     "package": "vsce package --yarn",
     "vscode:prepublish": "yarn build"
   },

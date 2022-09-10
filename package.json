@@ -4,16 +4,14 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn build:tree-sitter && yarn build:vscode && yarn build:site",
-    "build:site": "yarn workspace @moss-lang/site build",
-    "build:tree-sitter": "yarn workspace tree-sitter-moss build",
-    "build:vscode": "yarn workspace moss build",
+    "build": "turbo run build",
     "format": "prettier --write .",
-    "preview": "yarn workspace @moss-lang/site preview",
-    "site": "yarn workspace @moss-lang/site dev"
+    "preview": "turbo run preview",
+    "site": "turbo run dev"
   },
   "devDependencies": {
     "immutable": "^4",
-    "prettier": "^2"
+    "prettier": "^2",
+    "turbo": "^1"
   }
 }

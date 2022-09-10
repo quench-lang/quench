@@ -19,7 +19,7 @@ yarn
 ## CLI
 
 ```sh
-yarn build:tree-sitter
+yarn build --filter=cli
 ./run.sh packages/examples/hello.moss
 ```
 
@@ -28,23 +28,19 @@ yarn build:tree-sitter
 ### Development
 
 ```
-yarn build:tree-sitter
 yarn site
 ```
 
 ### Production
 
 ```
-yarn build:tree-sitter
-yarn build:site
 yarn preview
 ```
 
 ## VS Code extension
 
 ```sh
-yarn build:tree-sitter
-yarn build:vscode
+yarn build --filter=moss
 ```
 
 Then, from VS Code, press F5 to open a new window with the extension loaded.

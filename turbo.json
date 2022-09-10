@@ -1,0 +1,55 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "pipeline": {
+    "build-node": { "dependsOn": ["^build-node"], "outputs": [] },
+    "build-web": { "dependsOn": ["^build-web"], "outputs": [] },
+
+    "@moss-lang/cli#build": { "dependsOn": ["build-node"], "outputs": [] },
+
+    "@moss-lang/site#build-web": {
+      "dependsOn": ["^build-web", "grab-ts-wasm"],
+      "outputs": ["dist/**"]
+    },
+    "@moss-lang/site#build": { "dependsOn": ["build-web"], "outputs": [] },
+    "@moss-lang/site#dev": { "cache": false, "dependsOn": ["^build-web"] },
+    "@moss-lang/site#grab-ts-wasm": { "outputs": ["public/tree-sitter.wasm"] },
+    "@moss-lang/site#preview": { "cache": false, "dependsOn": ["build-web"] },
+
+    "tree-sitter-moss#build-node": {
+      "dependsOn": ["gyp-conf"],
+      "outputs": ["build/Release/**"]
+    },
+    "tree-sitter-moss#build-web": {
+      "dependsOn": ["ts-gen"],
+      "outputs": ["tree-sitter-*.wasm"]
+    },
+    "tree-sitter-moss#gyp-conf": {
+      "dependsOn": ["ts-gen"],
+      "outputs": [
+        "build/binding.Makefile",
+        "build/config.gypi",
+        "build/gyp-mac-tool",
+        "build/Makefile",
+        "build/tree_sitter_*_binding.target.mk"
+      ]
+    },
+    "tree-sitter-moss#ts-gen": {
+      "outputs": ["Cargo.toml", "binding.gyp", "bindings/**", "src/**"]
+    },
+
+    "moss#build-web": {
+      "dependsOn": ["build-client", "build-server"],
+      "outputs": []
+    },
+    "moss#build-client": {
+      "dependsOn": ["^build-web"],
+      "outputs": ["dist/extension.js", "dist/tree-sitter-moss-*.wasm"]
+    },
+    "moss#build-server": {
+      "dependsOn": ["grab-ts-wasm"],
+      "outputs": ["dist/server.js"]
+    },
+    "moss#build": { "dependsOn": ["build-web"], "outputs": [] },
+    "moss#grab-ts-wasm": { "outputs": ["dist/tree-sitter.wasm"] }
+  }
+}
