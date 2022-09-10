@@ -21,7 +21,7 @@
     },
     "tree-sitter-moss#build-web": {
       "dependsOn": ["ts-gen"],
-      "outputs": ["tree-sitter-*.wasm"]
+      "outputs": ["tree-sitter-moss.wasm"]
     },
     "tree-sitter-moss#ts-gen": {
       "outputs": ["Cargo.toml", "binding.gyp", "bindings/**", "src/**"]
