@@ -1,21 +1,7 @@
-# Moss [![CI](https://github.com/moss-lang/moss/actions/workflows/ci.yml/badge.svg)](https://github.com/moss-lang/moss/actions/workflows/ci.yml) [![license](https://img.shields.io/github/license/penrose/penrose)](/LICENSE)
+# Moss
 
-A programming language.
-
-## Usage
-
-Try it in your browser, no installation required: https://moss-lang.org/
-
-## Editor integration
-
-If you use VS Code, feel free to install the [extension][].
-
-## Interested in contributing?
-
-Cool! See [`CONTRIBUTING.md`](/CONTRIBUTING.md).
+A programming language. Not to be confused with [the other one](https://johnbsmith.github.io/moss/home.htm).
 
 ## License
 
 This repository is released under the [MIT License](/LICENSE).
-
-[extension]: https://marketplace.visualstudio.com/items?itemName=moss-lang.moss

@@ -1,6 +1,0 @@
-/binding.gyp
-/bindings/
-/build/
-/Cargo.toml
-/src/
-tree-sitter-*.wasm
