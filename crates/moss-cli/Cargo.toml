@@ -1,0 +1,12 @@
+[package]
+name = "moss-cli"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[[bin]]
+name = "moss"
+
+[dependencies]
+clap = { workspace = true }
+moss-core = { workspace = true }

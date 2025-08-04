@@ -1,2 +1,0 @@
-#!/usr/bin/env moss
-main := _ => print "Hello, world!";

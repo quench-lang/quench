@@ -1,0 +1,7 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
+moss-core = { path = "crates/moss-core" }
